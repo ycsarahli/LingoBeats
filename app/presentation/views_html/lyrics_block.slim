@@ -2,8 +2,8 @@
 - bad_message ||= "Failed to load lyrics."
 
 .lyrics-content 
-  - if lyrics && !lyrics.nil?
-    = lyrics
+  - if lyrics && !lyrics.text.to_s.strip.empty?
+    = lyrics.text
   - else
     .text-center.mt-5
       i.fas.fa-exclamation-triangle.fa-2x.text-danger.mb-1.d-block aria-hidden="true"

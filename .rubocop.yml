@@ -1,11 +1,23 @@
 ---
 plugins:
   - rubocop-minitest
+  - rubocop-rake
+  - rubocop-sequel
   
 # Apply latest style guide and new cops
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
+  Include:
+    - 'Gemfile'
+    - 'Rakefile'
+    - '**/*.rb'
+  Exclude:
+    - '_snippets/**/*'  # Demo files for instruction
+
+# Ignore use of OpenStruct for representers
+Style/OpenStructUse:
+  Enabled: false
 
 # Ignore block length in test code only
 Metrics/BlockLength:
@@ -32,7 +44,6 @@ Style/SymbolArray:
   Enabled: true
   Exclude:
     - Rakefile
-    - app/infrastructure/database/migrations/*.rb
 
 Naming/RescuedExceptionsVariableName:
   Enabled: false

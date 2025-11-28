@@ -12,11 +12,11 @@ module LingoBeats
         end
       end
 
-      def self.parse_multi(result)
+      def self.parse_multi(result, represent)
         if result.failure?
           yield([], result.failure)
         else
-          yield(result.value!, nil)
+          yield(result.value!.public_send(represent), nil)
         end
       end
     end

@@ -18,3 +18,4 @@ vendor/*
 /config/application.yml
 .bundle/
 app/domain/songs/services/__pycache__
+.vscode/

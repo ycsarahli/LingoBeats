@@ -6,8 +6,6 @@ require 'slim'
 require 'rack'
 require 'slim/include'
 
-require_relative 'helpers'
-
 # LingoBeats: include routing and service
 module LingoBeats
   # Web App
@@ -23,12 +21,6 @@ module LingoBeats
     plugin :multi_route
 
     use Rack::MethodOverride # allows HTTP verbs beyond GET/POST (e.g., DELETE)
-
-    MESSAGES = {
-      invalid_query: 'Invalid search query',
-      search_failed: 'Error in searching songs',
-      no_songs_found: 'No songs found for the given query'
-    }.freeze
 
     route do |routing|
       routing.assets   # load CSS/JS from assets plugin
@@ -47,7 +39,7 @@ module LingoBeats
 
         # Show popular songs on home page
         result = Service::ListSongs.new.call(:popular)
-        songs, bad_message = RouteHelpers::ResultParser.parse_multi(result) do |songs, error|
+        songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
           [Views::SongsList.new(songs), error]
         end
 
@@ -76,15 +68,16 @@ module LingoBeats
 
     # search songs
     route('songs') do |routing|
-      # GET /songs/search?category=...&query=...
-      routing.on 'search' do
+      # /songs
+      routing.is do
+        # GET /songs?category=...&query=...
         routing.get do
-          url_request = Forms::NewSong.new.call(routing.params)
-          category = url_request[:category]
-          query = url_request[:query]
+          list_request = Forms::NewSong.new.call(routing.params)
+          category = list_request[:category]
+          query = list_request[:query]
 
-          result = Service::ListSongs.new.call(url_request)
-          songs, bad_message = RouteHelpers::ResultParser.parse_multi(result) do |songs, error|
+          result = Service::ListSongs.new.call(list_request)
+          songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
             [Views::SongsList.new(songs), error]
           end
 
@@ -96,29 +89,20 @@ module LingoBeats
         end
       end
 
-      # GET /songs/:id/materials
-      # routing.on String do |song_id|
-      #   routing.on 'materials' do
-      #     routing.get do
-      #       song = Repository::For.klass(Entity::Song).find_id(song_id)
+      # /songs/:id
+      routing.on String do |song_id|
+        # GET /songs/:id/lyrics
+        routing.on 'lyrics' do
+          routing.get do
+            result = Service::GetLyric.new.call(song_id)
+            lyrics, bad_message = RouteHelpers::ResultParser.parse_single(result) do |lyric, error|
+              [Views::Lyric.new(lyric), error]
+            end
 
-      #       unless song
-      #         routing.halt(404, "Song #{song_id} not found")
-      #       end
-
-      #       cfg = App.config
-
-      #       materials = LingoBeats::Vocabularies::Services::GenerateMaterialsForSong.new(
-      #         vocabulary_repo: Repository::For.klass(Entity::Vocabulary),
-      #         mapper: LingoBeats::Gemini::VocabularyMapper.new(
-      #           access_token: cfg.GEMINI_API_KEY
-      #         )
-      #       ).call(song)
-
-      #       view 'materials', locals: { materials:, song: }
-      #     end
-      #   end
-      # end
+            view 'lyrics_block', locals: { lyrics:, bad_message: }, layout: false
+          end
+        end
+      end
     end
 
     # manage search history
@@ -131,27 +115,6 @@ module LingoBeats
 
           response.status = 204
           routing.halt
-        end
-      end
-    end
-
-    # search lyrics
-    route('lyrics') do |routing|
-      # GET /lyrics/song?id=...&name=...&singer=...
-      routing.on 'song' do
-        routing.get do
-          # 1. Validate parameters
-          url_request = Forms::NewLyric.new.call(routing.params)
-
-          # 2. Call new AddLyric pipelin
-          result = Service::AddLyric.new.call(url_request)
-
-          # 3. Parse result (success or failure)
-          lyrics, bad_message = RouteHelpers::ResultParser.parse_single(result) do |lyric, error|
-            [Views::Lyric.new(lyric).text, error]
-          end
-
-          view 'lyrics_block', locals: { lyrics:, bad_message: }, layout: false
         end
       end
     end

@@ -8,13 +8,8 @@ module LingoBeats
     class ListSearchHistories
       include Dry::Monads::Result::Mixin
 
-      def initialize(repo: Repository::For.klass(Entity::SearchHistory))
-        super()
-        @repo = repo
-      end
-
       def call(session)
-        entity = @repo.new(session).load
+        entity = Entity::SearchHistory.load_from(session)
         Success(entity)
       end
     end

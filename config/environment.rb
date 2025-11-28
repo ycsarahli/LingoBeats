@@ -4,8 +4,6 @@ require 'figaro'
 require 'logger'
 require 'rack/session/cookie'
 require 'roda'
-require 'sequel'
-require 'yaml'
 
 module LingoBeats
   # Configuration for the App
@@ -20,23 +18,17 @@ module LingoBeats
     Figaro.load
     def self.config = Figaro.env
 
-    raise 'Missing SESSION_SECRET!' unless config.SESSION_SECRET
-
     use Rack::Session::Cookie, secret: config.SESSION_SECRET
-
-    configure :development, :test do
-      require 'pry'; # for breakpoints
-      ENV['DATABASE_URL'] = "sqlite://#{config.DB_FILENAME}"
-    end
-
-    # Database Setup
-    @db = Sequel.connect(ENV.fetch('DATABASE_URL'))
-    def self.db = @db # rubocop:disable Style/TrivialAccessors
 
     # Logger Setup
     @logger = Logger.new($stderr)
     class << self
       attr_reader :logger
+    end
+
+    # Debugging Tools
+    configure :development, :test, :app_test do
+      require 'pry'
     end
   end
 end

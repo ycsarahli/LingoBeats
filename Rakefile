@@ -73,15 +73,29 @@ namespace :quality do
 end
 
 # run application
-namespace :app do
-  desc 'Run web app'
-  task :run do
-    sh 'bundle exec puma'
+desc 'Run the webserver and application and restart if code changes'
+task :rerun do
+  # --- Kill old Puma or rerun processes ---
+  puts '[rerun] Killing previous Puma processes...'
+  sh 'pkill -f puma || true'
+  sh 'pkill -f rerun || true'
+
+  # --- Start new rerun watcher ---
+  sh "rerun -c --ignore 'coverage/*' -- bundle exec rake run"
+end
+
+desc 'Run web app in default (dev) mode'
+task run: ['run:dev']
+
+namespace :run do
+  desc 'Run API in dev mode'
+  task :dev do
+    sh 'bundle exec puma -p 9000'
   end
 
-  desc 'Keep rerunning web app upon changes'
-  task :rerun do
-    sh "rerun -c --ignore 'coverage/*' -- bundle exec puma"
+  desc 'Run API in test mode'
+  task :test do
+    sh 'RACK_ENV=test bundle exec puma -p 9000'
   end
 end
 
@@ -92,44 +106,4 @@ task :new_session_secret do
   require 'securerandom'
   secret = SecureRandom.random_bytes(64).then { Base64.urlsafe_encode64(it) }
   puts "SESSION_SECRET: #{secret}"
-end
-
-# db manipulation
-namespace :db do
-  task :config do
-    require 'sequel'
-    require_relative 'config/environment' # load config info
-    require_relative 'spec/helpers/database_helper'
-
-    def app = LingoBeats::App
-  end
-
-  desc 'Run migrations'
-  task migrate: :config do
-    Sequel.extension :migration
-    puts "Migrating #{app.environment} database to latest"
-    Sequel::Migrator.run(app.db, 'db/migrations')
-  end
-
-  desc 'Wipe records from all tables'
-  task wipe: :config do
-    if app.environment == :production
-      puts 'Do not damage production database!'
-      return
-    end
-
-    require_app
-    DatabaseHelper.wipe_database
-  end
-
-  desc 'Delete dev or test database file (set correct RACK_ENV)'
-  task drop: :config do
-    if app.environment == :production
-      puts 'Do not damage production database!'
-      return
-    end
-
-    FileUtils.rm(LingoBeats::App.config.DB_FILENAME)
-    puts "Deleted #{LingoBeats::App.config.DB_FILENAME}"
-  end
 end

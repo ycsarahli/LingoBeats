@@ -11,11 +11,6 @@ module LingoBeats
       step :parse_url
       step :remove_search
 
-      def initialize(repo: Repository::For.klass(Entity::SearchHistory))
-        super()
-        @repo = repo
-      end
-
       private
 
       # step 1. parse category and query from request URL
@@ -23,27 +18,30 @@ module LingoBeats
         req = input[:request]
         return Failure("URL #{req.errors.messages.first}") unless req.success?
 
-        params = ParamExtractor.call(req)
-        Success(session: input[:session], params: params)
+        Success(
+          session: input[:session],
+          params: ParamExtractor.call(req)
+        )
       end
 
       # step 2. remove search from history
       def remove_search(input)
-        session = input[:session]
-        params = input[:params]
-
-        search_history = @repo.new(session).remove_record(category: params[:category], query: params[:query])
-        Success(search_history)
+        Success(
+          Entity::SearchHistory.remove_record(**input)
+        )
       rescue StandardError => error
-        App.logger.error error.backtrace.join("\n")
-        Success(@repo.load)
+        App.logger.error(error)
+        Success(Entity::SearchHistory.load_from(input[:session]))
       end
 
       # parameter extractor
       class ParamExtractor
         def self.call(request)
           params = request.to_h
-          { category: params[:category], query: params[:query] }
+          {
+            category: params[:category],
+            query: params[:query]
+          }
         end
       end
     end

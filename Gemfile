@@ -8,9 +8,13 @@ gem 'cld3'
 gem 'figaro', '~> 1.0'
 gem 'pry'
 gem 'pycall'
-gem 'rake'
+gem 'rack-test'
+gem 'rake', '~> 13.0'
 
 # PRESENTATION LAYER
+gem 'multi_json', '~> 1.15'
+gem 'ostruct', '~> 0.0'
+gem 'roar', '~> 1.1'
 gem 'slim', '~> 4.0'
 
 # APPLICATION LAYER
@@ -30,6 +34,11 @@ gem 'dry-validation', '~> 1.0'
 
 # HTML Parsing
 gem 'nokogiri'
+
+# Caching
+gem 'rack-cache', '~> 1.13'
+gem 'redis', '~> 4.8'
+gem 'redis-rack-cache', '~> 2.2'
 
 # DOMAIN LAYER
 # Validation

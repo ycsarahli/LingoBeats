@@ -8,17 +8,17 @@ module LingoBeats
     class AddSearchHistory
       include Dry::Monads::Result::Mixin
 
-      def initialize(repo: Repository::For.klass(Entity::SearchHistory))
-        super()
-        @repo = repo
-      end
-
       def call(session, category, query)
-        search_history = @repo.new(session).add_record(category:, query:)
+        search_history = Entity::SearchHistory.add_record(
+          session: session,
+          category: category,
+          query: query
+        )
+
         Success(search_history)
       rescue StandardError => error
-        App.logger.error error.backtrace.join("\n")
-        Success(@repo.load)
+        App.logger.error(error.backtrace.join("\n"))
+        Success(Entity::SearchHistory.load_from(session))
       end
     end
   end
