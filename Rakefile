@@ -88,12 +88,12 @@ desc 'Run web app in default (dev) mode'
 task run: ['run:dev']
 
 namespace :run do
-  desc 'Run API in dev mode'
+  desc 'Run APP in dev mode'
   task :dev do
     sh 'bundle exec puma -p 9000'
   end
 
-  desc 'Run API in test mode'
+  desc 'Run APP in test mode'
   task :test do
     sh 'RACK_ENV=test bundle exec puma -p 9000'
   end

@@ -19,6 +19,7 @@ module LingoBeats
     plugin :common_logger, $stderr
     plugin :halt
     plugin :multi_route
+    plugin :caching
 
     use Rack::MethodOverride # allows HTTP verbs beyond GET/POST (e.g., DELETE)
 
@@ -41,6 +42,11 @@ module LingoBeats
         result = Service::ListSongs.new.call(:popular)
         songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
           [Views::SongsList.new(songs), error]
+        end
+
+        # Only use browser caching in production
+        App.configure :production do
+          response.expires 300, public: true
         end
 
         view 'home', locals: { songs:, bad_message:, search_history: }
@@ -84,6 +90,10 @@ module LingoBeats
           # update search history in session
           result = Service::AddSearchHistory.new.call(session, category, query)
           search_history = Views::SearchHistory.new(result.value!)
+         
+          App.configure :production do
+            response.expires 300, public: true
+          end
 
           view 'song', locals: { songs:, category:, query:, bad_message:, search_history: }
         end
@@ -97,6 +107,10 @@ module LingoBeats
             result = Service::GetLyric.new.call(song_id)
             lyrics, bad_message = RouteHelpers::ResultParser.parse_single(result) do |lyric, error|
               [Views::Lyric.new(lyric), error]
+            end
+
+            App.configure :production do
+              response.expires 300, public: true
             end
 
             view 'lyrics_block', locals: { lyrics:, bad_message: }, layout: false
