@@ -12,7 +12,7 @@ module Views
     end
 
     def text
-      @level&.text
+      @level&.level
     end
   end
 end

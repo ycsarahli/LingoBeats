@@ -5,14 +5,14 @@
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
 
     // --- Elements used across sections ---
-    const searchInput      = document.getElementById('spotify_query_input');
-    const errorMsg         = document.getElementById('error');
-    const switcher         = document.querySelector('.pill-switch');
-    const slider           = switcher?.querySelector('.slider');
-    const links            = switcher ? switcher.querySelectorAll('.nav-link') : [];
-    const submitBtn        = document.getElementById('submitBtn');
-    const categoryInput    = document.getElementById('category');
-    const form             = document.getElementById('spotify-form');
+    const searchInput = document.getElementById('spotify_query_input');
+    const errorMsg = document.getElementById('error');
+    const switcher = document.querySelector('.pill-switch');
+    const slider = switcher?.querySelector('.slider');
+    const links = switcher ? switcher.querySelectorAll('.nav-link') : [];
+    const submitBtn = document.getElementById('submitBtn');
+    const categoryInput = document.getElementById('category');
+    const form = document.getElementById('spotify-form');
     const historyContainer = document.getElementById('searchHistoryContainer');
 
     // --- Page context ---
@@ -143,8 +143,8 @@
       // click outside → close
       document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) &&
-            !historyContainer.contains(e.target) &&
-            !e.target.closest('.pill-switch')) {
+          !historyContainer.contains(e.target) &&
+          !e.target.closest('.pill-switch')) {
           historyContainer.style.display = 'none';
         }
       });
@@ -193,7 +193,7 @@
 
         e.stopPropagation();
 
-        const query    = closeBtn.dataset.query;
+        const query = closeBtn.dataset.query;
         const category = closeBtn.dataset.category;
         if (!query || !category) return;
 
@@ -227,7 +227,7 @@
       searchInput.focus({ preventScroll: true });
       const len = searchInput.value.length;
       requestAnimationFrame(() => {
-        try { searchInput.setSelectionRange(len, len); } catch(_) {}
+        try { searchInput.setSelectionRange(len, len); } catch (_) { }
       });
     }
 
@@ -329,6 +329,7 @@
     // --- Song Modal Logic ---
     const songModal = document.getElementById('songModal');
     let scrollPosition = 0;
+    let currentSongId = null;
 
     function preventScroll(e) {
       e.preventDefault();
@@ -374,29 +375,31 @@
     }
 
     // --- Card click -> open modal and load lyrics ---
+    // ====== Event delegation: 點擊歌曲卡片開啟 Modal ======
     document.addEventListener(
       'click',
       (e) => {
         const card = e.target.closest('.song-card');
         if (!card) return;
 
+        // 點到歌手連結或播放 overlay 的話，交給原本的行為，不開 modal
         if (e.target.closest('.singer-link') || e.target.closest('.play-overlay')) return;
 
-        const singerLinks = card.querySelectorAll('.singer-link');
-        const singers = Array.from(singerLinks).map(link => ({
+        const singers = Array.from(card.querySelectorAll('.singer-link')).map(link => ({
           name: link.textContent.trim(),
           external_url: link.href
         }));
 
         const songData = {
-          id:    card.dataset.id || '',
-          name:  card.dataset.songName || '',
+          id: card.dataset.id || '',
+          name: card.dataset.songName || '',
           album: card.dataset.albumName || '',
           cover: card.dataset.cover || '/assets/img/placeholder-album.png',
-          url:   card.dataset.url || '#',
+          url: card.dataset.url || '#',
           singers
         };
 
+        // 更新 Modal 內容並開始載入歌詞（成功後才載入難度）
         updateSongModal(songData);
 
         const modalEl = document.getElementById('songModal');
@@ -412,16 +415,34 @@
         <p>Loading lyrics...</p>
       </div>`;
 
+    function getDifficultyContainer() {
+      return document.getElementById('difficultyStars');
+    }
+
+    function isCurrentSong(songId) {
+      return songId === currentSongId;
+    }
+
+    // ====== Modal Update ======
+    /**
+     * Update Modal basic info, reset lyrics and difficulty, and start loading lyrics
+     * @param {Object} data
+     */
     function updateSongModal(data) {
       const modalEl = document.getElementById('songModal');
       if (!modalEl) return;
 
+      // Mark the current song
+      currentSongId = data.id;
+
+      // Basic info
       modalEl.querySelector('#modalSongTitle').textContent = data.name;
       modalEl.querySelector('#modalAlbum').textContent = data.album;
       modalEl.querySelector('#modalCover').src = data.cover;
       modalEl.querySelector('#modalCover').alt = data.album || 'Cover';
       modalEl.querySelector('#modalPlayOverlay').href = data.url;
 
+      // Singers list
       const singersEl = modalEl.querySelector('#modalSingers');
       if (data.singers?.length) {
         singersEl.innerHTML = data.singers
@@ -431,32 +452,132 @@
         singersEl.textContent = 'Unknown';
       }
 
+      // Lyrics: scroll to top and show loading skeleton
       const lyricsEl = document.getElementById('modalLyrics');
       lyricsEl.scrollTop = 0;
       lyricsEl.innerHTML = lyricsLoadingHTML;
 
+      // Difficulty: reset to loading state (skeleton)
+      const starsContainer = getDifficultyContainer();
+      if (starsContainer) resetDifficultyDisplay(starsContainer);
+
+      // Start loading lyrics; only call fetchAndShowDifficulty after success
       loadLyrics(data.id);
     }
 
+    // ====== Lyrics Loading ======
+    /**
+     * Load lyrics, then load difficulty after success
+     * @param {string} songId
+     */
     async function loadLyrics(songId) {
+      console.log('LOAD LYRICS start', songId);
       const lyricsEl = document.getElementById('modalLyrics');
       lyricsEl.classList.add('loading');
 
       try {
-        const res  = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
-        const html = await res.text();
+        const res = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const html = await res.text();
+
+        // If the user has switched to another song during this time, ignore this result
+        if (!isCurrentSong(songId)) {
+          console.log('Lyrics response outdated, ignore:', songId);
+          return;
+        }
 
         lyricsEl.classList.remove('loading');
         lyricsEl.innerHTML = html;
+
+        // After lyrics successfully loaded, then fetch difficulty
+        fetchAndShowDifficulty(songId);
       } catch (e) {
+        // If it's no longer the current song, ignore the error
+        if (!isCurrentSong(songId)) return;
+
         lyricsEl.classList.remove('loading');
         lyricsEl.innerHTML = `
-          <div class="text-center text-danger py-5">
-            <i class="fas fa-exclamation-triangle fa-2x mb-1 d-block"></i>
-            <p>Failed to load lyrics: ${e.message}</p>
-          </div>`;
+      <div class="text-center text-danger py-5">
+        <i class="fas fa-exclamation-triangle fa-2x mb-1 d-block"></i>
+        <p>Failed to load lyrics: ${e.message}</p>
+      </div>`;
+
+        // If lyrics fail to load, also show difficulty error
+        setDifficultyError();
       }
+    }
+
+    // ====== Difficulty Loading ======
+    /**
+     * Fetch song difficulty and update stars in the footer
+     * @param {string} songId
+     */
+    async function fetchAndShowDifficulty(songId) {
+      console.log('LOAD DIFFICULTY start', songId);
+
+      const starsContainer = getDifficultyContainer();
+      if (!starsContainer) return;
+
+      // If this song is no longer the current one, don't call the API
+      if (!isCurrentSong(songId)) {
+        console.log('[Difficulty] Skip fetch, outdated songId:', songId);
+        return;
+      }
+
+      // Show loading skeleton and clear previous content
+      resetDifficultyDisplay(starsContainer);
+
+      try {
+        const response = await fetch(`/songs/${songId}/level`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const htmlFragment = await response.text();
+
+        // When the response comes back, check again if it's still the current song
+        if (!isCurrentSong(songId)) {
+          console.log('[Difficulty] Response outdated, ignore:', songId);
+          return;
+        }
+
+        const loadingEl = starsContainer.querySelector('.stars-loading');
+        const contentEl = starsContainer.querySelector('.stars-content');
+
+        loadingEl?.classList.add('d-none');
+        if (!contentEl) {
+          console.error('[Difficulty] .stars-content not found');
+          setDifficultyError();
+          return;
+        }
+
+        contentEl.innerHTML = htmlFragment;
+      } catch (error) {
+        if (!isCurrentSong(songId)) return;
+
+        console.error('Error fetching song level:', error);
+        setDifficultyError();
+      }
+    }
+
+    function setDifficultyError() {
+      const starsContainer = getDifficultyContainer();
+      if (!starsContainer) return;
+
+      const loadingEl = starsContainer.querySelector('.stars-loading');
+      const errorEl = starsContainer.querySelector('.stars-error');
+
+      loadingEl?.classList.add('d-none');
+      errorEl?.classList.remove('d-none');
+    }
+
+    function resetDifficultyDisplay(starsContainer) {
+      const loadingEl = starsContainer.querySelector('.stars-loading');
+      const errorEl = starsContainer.querySelector('.stars-error');
+      let contentEl = starsContainer.querySelector('.stars-content');
+
+      loadingEl?.classList.remove('d-none');
+      errorEl?.classList.add('d-none');
+      contentEl.innerHTML = '';
     }
   });
 })();

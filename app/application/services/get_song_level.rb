@@ -20,7 +20,7 @@ module LingoBeats
       # :reek:FeatureEnvy
       def retrieve_level(input)
         result = Gateway::Api.new(App.config)
-                             .get_song_level(input[:song_id])
+                             .get_song_level(input)
 
         result.success? ? Success(result.payload) : Failure(result.message)
       rescue StandardError

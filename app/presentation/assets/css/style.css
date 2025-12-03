@@ -18,12 +18,31 @@ body {
   color: var(--text-midgray);
 }
 
+.text-gold { 
+  color: #ffd700 !important; 
+}
+
 .bg-lingobeats {
   background-color: var(--lingobeats-green) !important;
 }
 
 .text-main {
   color: var(--lingobeats-green) !important;
+}
+
+.btn-lingobeats {
+  background-color: var(--lingobeats-green);
+  border-color: var(--lingobeats-green);
+  transition: all 0.3s ease; 
+}
+
+.btn-lingobeats:hover,
+.btn-lingobeats:active, 
+.btn-lingobeats:focus {
+  background-color: #1aa34a;
+  border-color: #1aa34a;
+  color: white !important;
+  box-shadow: 0 0 0 0.25rem rgba(29, 185, 84, 0.5);
 }
 
 /* =========================================================
@@ -333,9 +352,16 @@ body.modal-open {
 }
 
 .modal-custom-width {
-  max-width: 960px;
-  width: calc(100% - 4rem);
-  margin: 0 auto;
+  max-width: 75vw !important;
+  width: 75vw !important;
+  margin: auto !important;
+}
+
+@media (max-width: 576px) {
+  .modal-custom-width{
+    max-width: 85vw !important;
+    width: 85vw !important;
+  }
 }
 
 .modal-content {
@@ -425,12 +451,19 @@ body.modal-open {
   font-size: 0.9rem;
 }
 
-#modalLyrics:empty,
-#modalLyrics.loading {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
+@media (max-width: 991.98px) {
+  #modalLyrics {
+    max-height: 40vh;
+  }
+}
+
+#modalLyrics .lyrics-content > .text-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  margin: 0 !important;
 }
 
 /* Singer text color */
@@ -438,6 +471,29 @@ body.modal-open {
 #modalSingers p,
 #modalSingers a {
   color: var(--text-midgray);
+}
+
+/* difficulty stars */
+.difficulty-skeleton {
+  color: #e0e0e0;
+  animation: difficultyWave 1.2s infinite linear;
+}
+
+#difficultyStars .difficulty-skeleton:nth-child(1) {
+  animation-delay: 0s;
+}
+#difficultyStars .difficulty-skeleton:nth-child(2) {
+  animation-delay: 0.15s;
+}
+#difficultyStars .difficulty-skeleton:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes difficultyWave {
+  0%   { opacity: 0.3; }
+  30%  { opacity: 0.3; }
+  60%  { opacity: 0.9; }
+  100% { opacity: 0.3; }
 }
 
 /* =========================================================

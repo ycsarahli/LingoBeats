@@ -90,7 +90,7 @@ module LingoBeats
           # update search history in session
           result = Service::AddSearchHistory.new.call(session, category, query)
           search_history = Views::SearchHistory.new(result.value!)
-         
+
           App.configure :production do
             response.expires 300, public: true
           end
@@ -114,6 +114,18 @@ module LingoBeats
             end
 
             view 'lyrics_block', locals: { lyrics:, bad_message: }, layout: false
+          end
+        end
+
+        # GET /songs/:id/level
+        routing.on 'level' do
+          routing.get do
+            result = Service::GetSongLevel.new.call(song_id)
+            level, bad_message = RouteHelpers::ResultParser.parse_single(result) do |level, error|
+              [Views::Level.new(level), error]
+            end
+
+            view 'level_block', locals: { level:, bad_message: }, layout: false
           end
         end
       end
