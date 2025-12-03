@@ -136,7 +136,7 @@ module LingoBeats
       # DELETE /search_history?category=...&query=...
       routing.is do
         routing.delete do
-          url_request = Forms::DeleteSearch.new.call(routing.params)
+          url_request = Forms::NewSong.new.call(routing.params)
           Service::RemoveSearchHistory.new.call(session: session, request: url_request)
 
           response.status = 204

@@ -394,6 +394,7 @@
 
     // --- Song Modal Logic ---
     const songModal = document.getElementById('songModal');
+    const generateBtn = document.getElementById('btnStartLearning');
     let scrollPosition = 0;
     let currentSongId = null;
 
@@ -503,6 +504,9 @@
      * @param {Object} data
      */
     function updateSongModal(data) {
+      // Disable the Generate button until difficulty is loaded
+      generateBtn.disabled = true;
+
       const modalEl = document.getElementById('songModal');
       if (!modalEl) return;
 
@@ -701,6 +705,9 @@
         }
 
         contentEl.innerHTML = htmlFragment;
+
+        // Enable the Generate button
+        generateBtn.disabled = false;
       } catch (error) {
         if (!isCurrentSong(songId)) return;
 
