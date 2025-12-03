@@ -246,7 +246,7 @@ body {
   pointer-events: none;
 }
 
-.card.song-card:hover .play-overlay,
+.cover-wrap:hover .play-overlay,
 .modal-body .position-relative:hover #modalPlayOverlay {
   opacity: 1;
   background-color: rgba(0, 0, 0, 0.4);
@@ -291,6 +291,17 @@ body {
 
 .card-body {
   flex: 1;
+}
+
+/* Card hover effect */
+.card.song-card {
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.card.song-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 
 /* =========================================================
