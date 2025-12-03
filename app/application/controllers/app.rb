@@ -33,8 +33,8 @@ module LingoBeats
         @current_page = :home
 
         # Get cookie viewer's previously searched
-        session[:song_search_history] || []
-        session[:singer_search_history] || []
+        # session[:song_search_history] || []
+        # session[:singer_search_history] || []
         history = Service::ListSearchHistories.new.call(session)
         search_history = Views::SearchHistory.new(history.value!)
 

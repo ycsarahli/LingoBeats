@@ -564,7 +564,12 @@ body.modal-open {
   margin: 0;
 }
 
-.history-badge:hover {
+.history-badge.filter-hidden {
+  display: none !important;
+}
+
+.history-badge:hover,
+.history-badge.active {
   background-color: #f6f6f6;
 }
 

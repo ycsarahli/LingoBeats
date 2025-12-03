@@ -9,8 +9,11 @@ module LingoBeats
       include Dry::Monads::Result::Mixin
 
       def call(session)
-        entity = Entity::SearchHistory.load_from(session)
+        entity = Repository::SearchHistories.load_from(session)
         Success(entity)
+      rescue StandardError => e
+        App.logger.error(e.full_message)
+        Success(Entity::SearchHistory.new(song_names: [], singers: []))
       end
     end
   end

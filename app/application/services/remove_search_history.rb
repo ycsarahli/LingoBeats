@@ -18,20 +18,23 @@ module LingoBeats
         req = input[:request]
         return Failure("URL #{req.errors.messages.first}") unless req.success?
 
-        Success(
-          session: input[:session],
-          params: ParamExtractor.call(req)
-        )
+        params = ParamExtractor.call(req)
+
+        Success(session: input[:session], category: params[:category], query: params[:query])
       end
 
       # step 2. remove search from history
       def remove_search(input)
-        Success(
-          Entity::SearchHistory.remove_record(**input)
-        )
+        session = input[:session]
+
+        history = Repository::SearchHistories.load_from(session)
+        updated = history.remove(category: input[:category], query: input[:query])
+
+        Repository::SearchHistories.save_to(session, updated)
+        Success(updated)
       rescue StandardError => error
-        App.logger.error(error)
-        Success(Entity::SearchHistory.load_from(input[:session]))
+        App.logger.error(error.full_message)
+        Success(Repository::SearchHistories.load_from(input[:session]))
       end
 
       # parameter extractor

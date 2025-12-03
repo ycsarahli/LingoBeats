@@ -53,22 +53,6 @@
       });
     };
 
-    // --- Strict prefix matching helpers ---
-    const normalizeStr = (s) =>
-      (s || '')
-        .toLowerCase()
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim();
-
-    const prefixMatch = (text, query) => {
-      const t = normalizeStr(text);
-      const q = normalizeStr(query);
-      if (!q) return true;            // no query → show all in category
-      if (!t) return false;
-      return t.startsWith(q);         // strict prefix
-    };
-
     // --- Toggle which category group is visible (Song vs Singer) ---
     function toggleHistoryGroups(activeCat) {
       if (!historyContainer) return;
@@ -78,50 +62,65 @@
       });
     }
 
+    // --- Strict prefix matching function ---
+    function prefixMatch(text, q) {
+      const t = (text || '').toLowerCase().trim();
+      const qq = (q || '').toLowerCase().trim();
+      if (!qq) return true;
+      return t.startsWith(qq);
+    }
+
     // --- Core renderer: category filter + strict prefix filter + container visibility gating ---
-    function renderHistory(category, query) {
+    function renderHistory(category, queryFromParam) {
       if (!historyContainer) return;
 
-      const q = (query || '').trim();
-      const badges = historyContainer.querySelectorAll('.history-badge');
+      // Determine query to use
+      let rawQ = (queryFromParam || '').trim();
+      const inputQ = (searchInput?.value || '').trim();
+
+      if (!rawQ && inputQ) {
+        rawQ = inputQ;
+      }
+
+      const q = rawQ.toLowerCase();
+      const currentCat = (category || categoryInput?.value || 'song_name')
+        .toLowerCase();
+
+      const badges = Array.from(
+        historyContainer.querySelectorAll('.history-badge')
+      );
 
       let showCount = 0;
 
       badges.forEach(badge => {
-        // 1) category filter
-        const isCat = badge.dataset.category === category;
-        if (!isCat) {
-          badge.style.display = 'none';
-          return;
-        }
+        const badgeCat = (badge.dataset.category || '').toLowerCase();
 
-        // 2) prefix filter
-        const text = badge.dataset.query || badge.querySelector('.history-text')?.textContent || '';
-        const shouldShow = prefixMatch(text, q);
+        const rawText =
+          badge.dataset.query ||
+          badge.querySelector('.history-text')?.textContent ||
+          '';
+        const text = rawText.trim().toLowerCase();
 
-        if (shouldShow) {
-          // use flex to preserve layout
-          badge.style.display = 'flex';
-          showCount++;
-        } else {
-          badge.style.display = 'none';
-        }
+        const match =
+          badgeCat === currentCat && prefixMatch(text, q);
+
+        badge.classList.toggle('filter-hidden', !match);
+
+        if (match) showCount++;
+
+        console.log('[history][filter]', {
+          badgeText: text,
+          badgeCat,
+          q,
+          match
+        });
       });
 
-      // 3) only show container when:
-      //    - input is focused
-      //    - and (query empty with some items, or query non-empty with matches)
+      activeHistoryIndex = -1;
+      clearHistoryHighlight();
+
       const focused = (document.activeElement === searchInput);
-      const shouldShowContainer = focused && showCount > 0;
-      historyContainer.style.display = shouldShowContainer ? 'block' : 'none';
-
-      console.log('[history] render:', {
-        category,
-        query: q,
-        showCount,
-        focused,
-        shown: historyContainer.style.display
-      });
+      historyContainer.style.display = focused && showCount > 0 ? 'block' : 'none';
     }
 
     // --- Show/hide history on input focus / outside click and live filter ---
@@ -140,6 +139,30 @@
         renderHistory(cat, searchInput.value);
       });
 
+      // keydown: keyboard navigation
+      searchInput.addEventListener('keydown', (e) => {
+        if (!historyContainer || historyContainer.style.display === 'none') return;
+
+        const badges = getVisibleBadges();
+        if (!badges.length) return;
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeHistoryIndex = (activeHistoryIndex + 1) % badges.length;
+          highlightHistoryByIndex(activeHistoryIndex);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeHistoryIndex = (activeHistoryIndex - 1 + badges.length) % badges.length;
+          highlightHistoryByIndex(activeHistoryIndex);
+        } else if (e.key === 'Enter') {
+          if (activeHistoryIndex >= 0 && activeHistoryIndex < badges.length) {
+            e.preventDefault();
+            const badge = badges[activeHistoryIndex];
+            chooseHistoryBadge(badge);
+          }
+        }
+      });
+
       // click outside → close
       document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) &&
@@ -152,13 +175,11 @@
 
     // --- Click a history item to search ---
     if (historyContainer) {
-      historyContainer.addEventListener('click', (e) => {
-        const historyText = e.target.closest('.history-text');
-        if (!historyText) return;
+      function chooseHistoryBadge(badge) {
+        if (!badge) return;
 
-        const badge = historyText.closest('.history-badge');
-        const query = badge?.dataset.query;
-        const category = badge?.dataset.category;
+        const query = badge.dataset.query;
+        const category = badge.dataset.category;
         if (!query || !category) return;
 
         if (searchInput) searchInput.value = query;
@@ -177,6 +198,15 @@
         } else {
           form?.submit();
         }
+      }
+
+      // --- Choose history item ---
+      historyContainer.addEventListener('click', (e) => {
+        const historyText = e.target.closest('.history-text');
+        if (!historyText) return;
+
+        const badge = historyText.closest('.history-badge');
+        chooseHistoryBadge(badge);
       });
 
       // --- Delete single history item ---
@@ -214,7 +244,7 @@
             keepSearchFocus();
             console.log('[history] deleted:', { category, query });
           } else {
-            console.error('[history] delete failed:', res.status);
+            throw new Error(`HTTP ${res.status}`);
           }
         } catch (err) {
           console.error('[history] delete failed:', err);
@@ -229,6 +259,42 @@
       requestAnimationFrame(() => {
         try { searchInput.setSelectionRange(len, len); } catch (_) { }
       });
+    }
+
+    // --- Keyboard navigation state for history ---
+    let activeHistoryIndex = -1;
+
+    function getVisibleBadges() {
+      if (!historyContainer) return [];
+      return Array.from(historyContainer.querySelectorAll('.history-badge'))
+        .filter(badge => {
+          return badge.offsetParent !== null;
+        });
+    }
+
+    function clearHistoryHighlight() {
+      if (!historyContainer) return;
+      historyContainer
+        .querySelectorAll('.history-badge.active')
+        .forEach(b => b.classList.remove('active'));
+    }
+
+    function highlightHistoryByIndex(index) {
+      const badges = getVisibleBadges();
+      clearHistoryHighlight();
+      if (!badges.length || index < 0 || index >= badges.length) return;
+
+      const badge = badges[index];
+      badge.classList.add('active');
+
+      // Ensure the highlighted item is visible
+      badge.scrollIntoView({ block: 'nearest' });
+
+      // Set input value to the highlighted item's text
+      const text = badge.dataset.query ||
+        badge.querySelector('.history-text')?.textContent ||
+        '';
+      if (searchInput) searchInput.value = text;
     }
 
     // --- Remember on submit & reset on home ---
