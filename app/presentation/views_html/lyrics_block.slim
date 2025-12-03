@@ -1,4 +1,6 @@
-/ locals: lyrics
+/ locals: lyrics, bad_message
 
 - if lyrics && !lyrics.text.to_s.strip.empty?
   = lyrics.text
+- elsif bad_message
+  span.lyrics-api-error = bad_message

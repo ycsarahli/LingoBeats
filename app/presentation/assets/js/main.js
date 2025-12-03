@@ -481,47 +481,41 @@
      * @param {string} songId
      */
     async function loadLyrics(songId) {
-      console.log('LOAD LYRICS start', songId);
       const container = getLyricsContainer();
       if (!container) return;
 
+      resetLyricsDisplay(container);
+
       try {
-        const res = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
-        if (!res.ok) {
-          const serverErr = await res.text();   // server error message
-          throw new Error(serverErr || `HTTP ${res.status}`);
-        }
+        const res  = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const html = await res.text();
-
-        if (!isCurrentSong(songId)) {
-          console.log('Lyrics response outdated, ignore:', songId);
-          return;
-        }
+        if (!isCurrentSong(songId)) return;
 
         const loadingEl = container.querySelector('.lyrics-loading');
-        const errorEl = container.querySelector('.lyrics-error');
+        const errorEl   = container.querySelector('.lyrics-error');
         const contentEl = container.querySelector('.lyrics-content');
-
-        // Handle empty lyrics
-        if (!html.trim()) {
-          throw new Error('Empty lyrics received.');
-        }
 
         loadingEl?.classList.add('d-none');
         errorEl?.classList.add('d-none');
+
         if (contentEl) {
           contentEl.classList.remove('d-none');
           contentEl.innerHTML = html;
         }
+
+        // handle error message from api view
+        const errorMsgEl = contentEl.querySelector('.lyrics-api-error');
+        if (errorMsgEl) throw new Error(errorMsgEl.textContent);
 
         // load difficulty only after lyrics success
         fetchAndShowDifficulty(songId);
       } catch (e) {
         if (!isCurrentSong(songId)) return;
 
-        console.error("Lyrics error:", e);
-        showLyricsError(e.message);
+        console.error('Lyrics error:', e);
+        showLyricsError(e.message || 'Failed to load lyrics.');
         setDifficultyError();
       }
     }
@@ -597,7 +591,7 @@
 
       buildLyricsSkeleton(container);
     });
-    
+
     // ====== Difficulty Loading ======
     /**
      * Fetch song difficulty and update stars in the footer

@@ -33,7 +33,7 @@ module LingoBeats
         result = SongFetcher.new(Gateway::Api.new(App.config))
                             .fetch_songs(input)
 
-        result.success? ? Success(result.payload) : Failure(result.message)
+        result.success? ? Success(result.payload) : Failure(result.payload)
       rescue StandardError
         Failure(RETRIEVE_ERROR)
       end

@@ -1,15 +1,21 @@
-/ detect stars to be active based on level
-- difficulty_str = level&.text.to_s.downcase
-- active_stars = 0
-- if difficulty_str == 'easy'
-  - active_stars = 1
-- elsif difficulty_str == 'medium'
-  - active_stars = 2
-- elsif difficulty_str == 'hard'
-  - active_stars = 3
+/ locals: level, bad_message
 
-/ inner HTML for .stars-content
-- 1.upto(3) do |i|
+- if bad_message
+  span.small.text-danger ?
+
+- else
+  - difficulty_str = level&.text.to_s.downcase
+  - active_stars = 0
+
+  - if difficulty_str == 'easy'
+    - active_stars = 1
+  - elsif difficulty_str == 'medium'
+    - active_stars = 2
+  - elsif difficulty_str == 'hard'
+    - active_stars = 3
+
+  / inner HTML for .stars-content
+  - 1.upto(3) do |i|
     - if i <= active_stars
         i.fas.fa-star.star-icon.text-gold title=level&.text
     - else
