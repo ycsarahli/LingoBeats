@@ -437,33 +437,63 @@ body.modal-open {
   #modalSongTitle {
     font-size: 1.25rem;
   }
+
+  #modalSongTitle,
+  #modalAlbum,
+  #modalSingers {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
 }
 
 /* Lyrics content */
 #modalLyrics {
   overflow-y: auto !important;
   overflow-x: hidden;
-  white-space: pre-wrap;
-  word-break: break-word;
   max-height: 52vh;
   text-align: left;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 0.9rem;
 }
 
 @media (max-width: 991.98px) {
   #modalLyrics {
+    height: 40vh;
     max-height: 40vh;
   }
 }
 
-#modalLyrics .lyrics-content > .text-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  margin: 0 !important;
+#modalLyrics .lyrics-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 0.9rem;
+}
+
+.lyrics-loading {
+  padding: 0.75rem 0.5rem;
+}
+
+.lyrics-skeleton-line {
+  height: 1rem;
+  margin-bottom: 0.7rem;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 0%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.06) 80%
+  );
+  background-size: 200% 100%;
+  animation: lyricsSkeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.lyrics-skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+/* Shimmer animation */
+@keyframes lyricsSkeletonShimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Singer text color */
@@ -475,25 +505,27 @@ body.modal-open {
 
 /* difficulty stars */
 .difficulty-skeleton {
-  color: #e0e0e0;
-  animation: difficultyWave 1.2s infinite linear;
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 0%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.06) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: lyricsSkeletonShimmer 1.4s ease-in-out infinite;
 }
 
 #difficultyStars .difficulty-skeleton:nth-child(1) {
   animation-delay: 0s;
 }
 #difficultyStars .difficulty-skeleton:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: 0.12s;
 }
 #difficultyStars .difficulty-skeleton:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes difficultyWave {
-  0%   { opacity: 0.3; }
-  30%  { opacity: 0.3; }
-  60%  { opacity: 0.9; }
-  100% { opacity: 0.3; }
+  animation-delay: 0.24s;
 }
 
 /* =========================================================

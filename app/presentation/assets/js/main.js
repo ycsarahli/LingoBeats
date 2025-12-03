@@ -351,6 +351,16 @@
         document.addEventListener('scroll', preventScroll, { passive: false });
       });
 
+      songModal.addEventListener('shown.bs.modal', () => {
+        const container = getLyricsContainer();
+        if (!container) return;
+
+        const loadingEl = container.querySelector('.lyrics-loading');
+        if (loadingEl && !loadingEl.classList.contains('d-none')) {
+          buildLyricsSkeleton(container);
+        }
+      });
+
       songModal.addEventListener('hidden.bs.modal', function () {
         document.removeEventListener('wheel', preventScroll);
         document.removeEventListener('touchmove', preventScroll);
@@ -375,14 +385,13 @@
     }
 
     // --- Card click -> open modal and load lyrics ---
-    // ====== Event delegation: 點擊歌曲卡片開啟 Modal ======
     document.addEventListener(
       'click',
       (e) => {
         const card = e.target.closest('.song-card');
         if (!card) return;
 
-        // 點到歌手連結或播放 overlay 的話，交給原本的行為，不開 modal
+        // Ignore clicks on singer links or play overlay
         if (e.target.closest('.singer-link') || e.target.closest('.play-overlay')) return;
 
         const singers = Array.from(card.querySelectorAll('.singer-link')).map(link => ({
@@ -399,7 +408,6 @@
           singers
         };
 
-        // 更新 Modal 內容並開始載入歌詞（成功後才載入難度）
         updateSongModal(songData);
 
         const modalEl = document.getElementById('songModal');
@@ -409,11 +417,11 @@
       true
     );
 
-    const lyricsLoadingHTML = `
-      <div class="text-center text-muted py-3">
-        <i class="fas fa-spinner fa-spin fa-2x mb-1 d-block"></i>
-        <p>Loading lyrics...</p>
-      </div>`;
+    // ====== helpers ======
+
+    function getLyricsContainer() {
+      return document.getElementById('modalLyrics');
+    }
 
     function getDifficultyContainer() {
       return document.getElementById('difficultyStars');
@@ -453,9 +461,11 @@
       }
 
       // Lyrics: scroll to top and show loading skeleton
-      const lyricsEl = document.getElementById('modalLyrics');
-      lyricsEl.scrollTop = 0;
-      lyricsEl.innerHTML = lyricsLoadingHTML;
+      const lyricsContainer = getLyricsContainer();
+      if (lyricsContainer) {
+        lyricsContainer.scrollTop = 0;
+        resetLyricsDisplay(lyricsContainer);
+      }
 
       // Difficulty: reset to loading state (skeleton)
       const starsContainer = getDifficultyContainer();
@@ -472,42 +482,122 @@
      */
     async function loadLyrics(songId) {
       console.log('LOAD LYRICS start', songId);
-      const lyricsEl = document.getElementById('modalLyrics');
-      lyricsEl.classList.add('loading');
+      const container = getLyricsContainer();
+      if (!container) return;
 
       try {
         const res = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const serverErr = await res.text();   // server error message
+          throw new Error(serverErr || `HTTP ${res.status}`);
+        }
 
         const html = await res.text();
 
-        // If the user has switched to another song during this time, ignore this result
         if (!isCurrentSong(songId)) {
           console.log('Lyrics response outdated, ignore:', songId);
           return;
         }
 
-        lyricsEl.classList.remove('loading');
-        lyricsEl.innerHTML = html;
+        const loadingEl = container.querySelector('.lyrics-loading');
+        const errorEl = container.querySelector('.lyrics-error');
+        const contentEl = container.querySelector('.lyrics-content');
 
-        // After lyrics successfully loaded, then fetch difficulty
+        // Handle empty lyrics
+        if (!html.trim()) {
+          throw new Error('Empty lyrics received.');
+        }
+
+        loadingEl?.classList.add('d-none');
+        errorEl?.classList.add('d-none');
+        if (contentEl) {
+          contentEl.classList.remove('d-none');
+          contentEl.innerHTML = html;
+        }
+
+        // load difficulty only after lyrics success
         fetchAndShowDifficulty(songId);
       } catch (e) {
-        // If it's no longer the current song, ignore the error
         if (!isCurrentSong(songId)) return;
 
-        lyricsEl.classList.remove('loading');
-        lyricsEl.innerHTML = `
-      <div class="text-center text-danger py-5">
-        <i class="fas fa-exclamation-triangle fa-2x mb-1 d-block"></i>
-        <p>Failed to load lyrics: ${e.message}</p>
-      </div>`;
-
-        // If lyrics fail to load, also show difficulty error
+        console.error("Lyrics error:", e);
+        showLyricsError(e.message);
         setDifficultyError();
       }
     }
 
+    function resetLyricsDisplay(container) {
+      const loadingEl = container.querySelector('.lyrics-loading');
+      const errorEl   = container.querySelector('.lyrics-error');
+      const contentEl = container.querySelector('.lyrics-content');
+
+      loadingEl?.classList.remove('d-none');
+      errorEl?.classList.add('d-none');
+
+      if (contentEl) {
+        contentEl.innerHTML = '';
+        contentEl.classList.add('d-none');
+      }
+    }
+
+    function showLyricsError(message) {
+      const container = getLyricsContainer();
+      if (!container) return;
+
+      const loadingEl = container.querySelector('.lyrics-loading');
+      const errorEl = container.querySelector('.lyrics-error');
+      const contentEl = container.querySelector('.lyrics-content');
+      const msgP = errorEl?.querySelector('p.text-danger');
+
+      loadingEl?.classList.add('d-none');
+      if (contentEl) {
+        contentEl.innerHTML = '';
+        contentEl.classList.add('d-none');
+      }
+
+      if (msgP && message) msgP.textContent = message;
+      errorEl?.classList.remove('d-none');
+    }
+
+    function buildLyricsSkeleton(container) {
+      const loadingEl = container.querySelector('.lyrics-loading');
+      if (!loadingEl) return;
+
+      loadingEl.innerHTML = '';
+
+      let targetHeight = container.clientHeight || parseInt(container.style.maxHeight) || 240;
+      console.log('[Lyrics Skeleton] build for height:', targetHeight);
+
+      const block = 28;
+      let usedHeight = 0;
+      let safety = 50;
+      let lineIndex = 0;
+
+      while (usedHeight + block <= targetHeight && safety-- > 0) {
+        const line = document.createElement('div');
+        line.className = 'lyrics-skeleton-line';
+
+        const widths = [95, 80, 63, 90, 74, 85]; // %
+        const width = widths[lineIndex % widths.length];
+        line.style.width = `${width}%`;
+
+        loadingEl.appendChild(line);
+        usedHeight += block;
+        lineIndex += 1;
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      const container = getLyricsContainer();
+      if (!container) return;
+
+      const loadingEl = container.querySelector('.lyrics-loading');
+      const isLoading = loadingEl && !loadingEl.classList.contains('d-none');
+      if (!isLoading) return;
+
+      buildLyricsSkeleton(container);
+    });
+    
     // ====== Difficulty Loading ======
     /**
      * Fetch song difficulty and update stars in the footer
