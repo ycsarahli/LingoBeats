@@ -1,1 +1,97 @@
-// TODO
+/ app/presentation/views_html/material.slim
+
+/ 頁面主 layout
+.main-material-layout
+  / ==== 左側：歌曲資訊 + 歌詞 ====
+  .song-panel
+    - if defined?(song) && song
+      .song-card.card.mb-4
+        .album-cover
+          - if song.respond_to?(:image) && song.image
+            img src=song.image alt=song.title
+          - elsif song.respond_to?(:album_image_url) && song.album_image_url
+            img src=song.album_image_url alt=song.title
+          - else
+            .album-placeholder No cover
+
+        .song-meta
+          h2.song-title = song.title
+          p.song-artist = song.artist
+          - if song.respond_to?(:album) && song.album
+            p.song-album = song.album
+
+      .lyrics-card.card
+        h3.section-title Lyrics
+        - if song.respond_to?(:lyrics_lines) && song.lyrics_lines
+          pre.lyrics-text = song.lyrics_lines.join("\n")
+        - elsif song.respond_to?(:lyrics) && song.lyrics
+          pre.lyrics-text = song.lyrics
+        - else
+          p.lyrics-empty No lyrics available.
+    - else
+      .song-card.card
+        p 沒有拿到 song 資訊（之後再從 controller 傳進來）
+
+  / ==== 右邊：學習教材區塊 ====
+  .material-panel
+    h2 Vocabularies
+
+    / debug：看一下 materials 長怎樣（要看的時候再打開）
+    / pre.small.text-muted.mb-3 = materials.inspect
+
+    / .materials-scroll.overflow-auto style="border: 2px solid red; height: 300px; overflow-y: auto;"
+    .materials-scroll.overflow-auto
+      - if materials && materials.any?
+        - materials.each do |material|
+          .card.mb-4.shadow-sm.material-card
+            .card-body
+              - main_pos = nil
+              - if material.meanings && material.meanings.any?
+                - first_meaning = material.meanings.first
+                - main_pos = first_meaning[:pos] || first_meaning['pos']
+
+              / ===== 上面：單字 + 詞性 + 等級 + 中文小標 =====
+              .material-header
+                .word-block
+                  h3.word.mb-0.me-2 = material.word
+                  - if main_pos
+                    span.level.badge.bg-light.text-secondary.text-uppercase = main_pos
+                - if material.level
+                  span.level.badge.bg-success = material.level
+
+              - if material.head_zh
+                p.head-zh.mb-3.text-muted = material.head_zh
+
+              / ===== 下面：各個 meaning + 例句 =====
+              - if material.meanings && material.meanings.any?
+                - material.meanings.each do |meaning|
+                  - def_en   = meaning[:definition_en]   || meaning['definition_en']
+                  - def_zh   = meaning[:definition_zh]   || meaning['definition_zh']
+                  - examples = meaning[:examples]        || meaning['examples'] || []
+
+                  .meaning-block.border-top.pt-3.mt-2
+                    .meaning-header
+                      / pos 如果之後想顯示可以在這裡加
+                      / - pos = meaning[:pos] || meaning['pos']
+                      / - if pos
+                      /   span.pos.badge.bg-light.text-secondary.me-2 = pos
+
+                    - if def_en
+                      p.definition-en.mb-0.fw-semibold = def_en
+
+                    - if def_zh
+                      p.definition-zh.mb-1.text-muted = def_zh
+
+                    - if examples.any?
+                      .examples
+                        - examples.each do |ex|
+                          - sen_en = ex[:sentence_en]    || ex['sentence_en']
+                          - exp_zh = ex[:explanation_zh] || ex['explanation_zh']
+
+                          .example-item.mb-2
+                            - if sen_en
+                              p.sentence-en.mb-0 = sen_en
+                            - if exp_zh
+                              p.explanation-zh.mb-0.text-muted.small = exp_zh
+      - else
+        p.text-muted 沒有拿到任何 vocab 資料（materials 目前是空的）

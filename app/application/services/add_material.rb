@@ -22,7 +22,7 @@ module LingoBeats
         result = Gateway::Api.new(App.config)
                              .add_song_material(input)
 
-        result.success? ? Success(result.payload) : Failure(result.payload)
+        result.success? ? Success(result.payload) : Failure(result.message)
       rescue StandardError
         Failure(REQUEST_ERROR)
       end

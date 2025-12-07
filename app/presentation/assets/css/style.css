@@ -3,10 +3,10 @@
    ========================================================= */
 body {
   padding-top: 50px;
-  /* for fixed header */
   overflow: hidden;
   padding-left: 2rem;
   padding-right: 2rem;
+  height: 100vh;
 }
 
 :root {
@@ -607,4 +607,87 @@ body.modal-open {
   border-radius: 4px;
   opacity: 1;
   visibility: visible;
+}
+
+/* ===============================
+   Material page layout
+   =============================== */
+
+/* 主 layout：左右分欄 */
+.main-material-layout {
+  display: flex;
+  gap: 2rem;
+  height: calc(100vh - 50px - 4rem);  /* 50px navbar + 上下 padding 2rem+2rem */
+  min-height: 0;                       /* 關鍵：讓子元素高度可以被壓縮 */
+}
+
+/* 左欄：歌曲資訊 */
+.song-panel {
+  flex: 0 0 35%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.card.song-card {
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.card.song-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.song-card.card,
+.lyrics-card.card {
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* 右欄：教材區 */
+.material-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;   /* 關鍵：配合 flex，讓下面的 .materials-scroll 能變成「有界高度」 */
+}
+
+/* 標題固定 */
+.material-panel h2 {
+  flex-shrink: 0;
+  margin: 0 !important;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* 卡片容器：這裡捲動 */
+.materials-scroll {
+  height: 600px;
+  flex: 1;              /* 吃掉剩下全部高度 */
+  min-height: 0;        /* 關鍵：不要撐破父層 */
+  overflow-y: auto;     /* 只能這裡上下捲動 */
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+  /* border: 2px solid red; */
+}
+
+/* 卡片本身 */
+.material-card {
+  flex-shrink: 0;  /* 加這行：防止卡片被壓縮 */
+}
+
+/* 單字卡 header：左邊 word + 詞性，右邊 level(A/B/C...) */
+.material-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 左右兩側拉開 */
+  gap: 0.5rem;
+}
+
+/* 左邊那坨字（單字 + VERB）橫向排在一起 */
+.word-block {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }

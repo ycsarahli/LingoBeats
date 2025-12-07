@@ -451,6 +451,15 @@
       }
     }
 
+    // --- Start Learning button ---
+    if (generateBtn) {
+      generateBtn.addEventListener('click', () => {
+        if (!currentSongId) return;
+        window.location.href = `/songs/${currentSongId}/material`;
+      });
+    }
+
+
     // --- Card click -> open modal and load lyrics ---
     document.addEventListener(
       'click',

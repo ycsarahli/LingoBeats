@@ -128,6 +128,33 @@ module LingoBeats
             view 'level_block', locals: { level:, bad_message: }, layout: false
           end
         end
+
+        # GET /songs/:id/material
+        routing.on 'material' do
+          routing.get do
+            result = Service::EnsureMaterial.new.call(song_id)
+
+            materials, bad_message =
+              RouteHelpers::ResultParser.parse_single(result) do |payload, error|
+                # payload 成功時是 #<OpenStruct song: ..., contents: [...]>
+                # 失敗時是 nil
+                if payload.nil?
+                  empty_list = Views::MaterialsList.new([])
+                  [empty_list, error]
+                else
+                  vocab_array = payload.contents || []
+                end
+
+                list = Views::MaterialsList.new(
+                  vocab_array.map { |h| OpenStruct.new(h) }
+                )
+
+                [list, error]
+              end
+
+            view 'material', locals: { materials:, bad_message: }
+          end
+        end
       end
     end
 
