@@ -623,7 +623,7 @@ body.modal-open {
 
 /* 左欄：歌曲資訊 */
 .song-panel {
-  flex: 0 0 35%;
+  flex: 0 0 50%;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -676,12 +676,82 @@ body.modal-open {
   flex-shrink: 0;  /* 加這行：防止卡片被壓縮 */
 }
 
+/* 把單字卡右上角的等級顏色改成主視覺綠 */
+.material-card .badge.bg-success {
+  background-color: var(--lingobeats-green) !important;
+  border-color: var(--lingobeats-green) !important;
+  color: #fff !important;
+}
+
+/* normal：黃色 */
+.material-card .badge.bg-warning {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #fff !important; /* 深色字，比較好讀 */
+}
+
+/* hard：紅色 */
+.material-card .badge.bg-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+/* 單字卡 header：左右兩邊 */
+.material-card .material-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.material-card .material-header-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+/* level badge 右邊那一小塊 */
+.material-card .material-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 收藏星星 */
+.material-card .fav-star {
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: #ccc;            /* 灰色預設 */
+  transition: color 0.15s ease;
+}
+
+/* 被收藏時（黃色） */
+.material-card .fav-star.is-fav {
+  color: #f5c518;         /* 想換成主視覺黃可以自己調 */
+}
+
+
+
 /* 單字卡 header：左邊 word + 詞性，右邊 level(A/B/C...) */
 .material-header {
   display: flex;
   align-items: center;
   justify-content: space-between; /* 左右兩側拉開 */
   gap: 0.5rem;
+}
+
+.material-card .definition-en .definition-zh {
+  font-weight: 600;
+  color: #2c3e50; /* 深色，提高可讀性 */
+}
+
+.material-card .sentence-en {
+  color: #797979; /* 比定義淺 */
+  margin-top: 0.5rem;
+}
+
+.material-card .explanation-zh {
+  color: #777; /* 再淡一階 */
 }
 
 /* 左邊那坨字（單字 + VERB）橫向排在一起 */
@@ -691,3 +761,94 @@ body.modal-open {
   flex-wrap: wrap;
   gap: 0.35rem;
 }
+
+.material-pager {
+  padding-top: 0.25rem;
+  border-top: 1px solid #eee;
+}
+
+#materialCounter {
+  min-width: 80px;
+  text-align: center;
+}
+
+/* 左欄：歌曲資訊 + 歌詞 */
+.song-panel {
+  flex: 0 0 45%;      /* 如果想變 1/2 可以調成 50% */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow: hidden;   /* 自己不捲，由裡面的歌詞區捲 */
+}
+
+/* 標題區：封面 + 基本資訊 */
+.song-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.song-header .album-cover {
+  width: 120px;
+  height: 120px;
+  flex: 0 0 120px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.song-header .album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song-meta .song-title {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+/* 歌詞區：這裡捲動 */
+.lyrics-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.lyrics-text {
+  white-space: pre-wrap;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.lyrics-text {
+  white-space: pre-wrap;   /* 保留換行又可以自動換行 */
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+/* 有單字卡的詞 */
+.lyrics-word {
+  padding: 0 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* 滑鼠移上去的效果 */
+.lyrics-word:hover {
+  background-color: rgba(29, 185, 84, 0.12);   /* 主視覺綠的淡版 */
+  box-shadow: 0 0 0 1px rgba(29, 185, 84, 0.3);
+}
+
+/* 之後點擊選中的狀態（先定義好，下一步 JS 會用到） */
+.lyrics-word--active {
+  background-color: rgba(29, 185, 84, 0.22);
+  box-shadow: 0 0 0 1px #1db954;
+}
+

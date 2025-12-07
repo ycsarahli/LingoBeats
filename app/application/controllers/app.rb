@@ -132,29 +132,47 @@ module LingoBeats
         # GET /songs/:id/material
         routing.on 'material' do
           routing.get do
+            # 1) 先跟 API 要「教材 + song」
             result = Service::EnsureMaterial.new.call(song_id)
 
-            materials, bad_message =
-              RouteHelpers::ResultParser.parse_single(result) do |payload, error|
-                # payload 成功時是 #<OpenStruct song: ..., contents: [...]>
-                # 失敗時是 nil
-                if payload.nil?
-                  empty_list = Views::MaterialsList.new([])
-                  [empty_list, error]
-                else
-                  vocab_array = payload.contents || []
-                end
+            song        = nil
+            materials   = Views::MaterialsList.new([])
+            bad_message = nil
 
-                list = Views::MaterialsList.new(
-                  vocab_array.map { |h| OpenStruct.new(h) }
-                )
+            if result.success?
+              # payload 預期是 #<OpenStruct song: <Song>, contents: [...]>
+              payload = result.value!
 
-                [list, error]
-              end
+              song = payload.song
 
-            view 'material', locals: { materials:, bad_message: }
+              vocab_array = payload.contents || []
+              materials   = Views::MaterialsList.new(
+                vocab_array.map { |h| OpenStruct.new(h) }
+              )
+            else
+              bad_message = result.message
+            end
+
+            # 2) 再用 Service::GetLyric 拿歌詞
+            lyrics = nil
+            lyrics_result = Service::GetLyric.new.call(song_id)
+
+            if lyrics_result.success?
+              lyrics = Views::Lyric.new(lyrics_result.value!)
+            else
+              bad_message ||= lyrics_result.message
+            end
+
+            # 3) 丟進 material.slim
+            view 'material', locals: {
+              song:,
+              lyrics:,
+              materials:,
+              bad_message:
+            }
           end
         end
+
       end
     end
 

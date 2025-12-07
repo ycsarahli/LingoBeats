@@ -30,5 +30,25 @@ module Views
     def related_forms
       @material.related_forms
     end
+
+    def difficulty_label
+      case @material.level.to_s
+      when 'A' then 'easy'
+      when 'B' then 'normal'
+      when 'C' then 'hard'
+      else
+        @material.level.to_s   # 萬一將來有別的值，就先原樣顯示
+      end
+    end
+
+    def difficulty_class
+      case @material.level.to_s
+      when 'A' then 'bg-success'  # easy
+      when 'B' then 'bg-warning'  # normal
+      when 'C' then 'bg-danger'   # hard
+      else
+        'bg-secondary'
+      end
+    end
   end
 end

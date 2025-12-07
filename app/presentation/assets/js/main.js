@@ -745,5 +745,142 @@
       errorEl?.classList.add('d-none');
       contentEl.innerHTML = '';
     }
+    
+    // ====== Material page only ======
+    if (/^\/songs\/[^/]+\/material/.test(window.location.pathname)) {
+      console.log('[material] script loaded, path =', window.location.pathname);
+
+      // 左右翻頁 Material Card
+      const materialCards = Array.from(document.querySelectorAll('.material-card'));
+      const prevBtn = document.getElementById('materialPrev');
+      const nextBtn = document.getElementById('materialNext');
+      const counter = document.getElementById('materialCounter');
+      const materialContainer = document.querySelector('.materials-scroll');
+
+      let currentMaterialIndex = 0;
+
+      function showMaterialCard(index) {
+        if (!materialCards.length) return;
+
+        if (index < 0) index = 0;
+        if (index >= materialCards.length) index = materialCards.length - 1;
+        currentMaterialIndex = index;
+
+        materialCards.forEach(card => card.classList.add('d-none'));
+        materialCards[currentMaterialIndex].classList.remove('d-none');
+
+        if (materialContainer) {
+          materialContainer.scrollTop = 0;
+        }
+
+        if (counter) {
+          counter.textContent = `${currentMaterialIndex + 1} / ${materialCards.length}`;
+        }
+
+        if (prevBtn) prevBtn.disabled = (currentMaterialIndex === 0);
+        if (nextBtn) nextBtn.disabled = (currentMaterialIndex === materialCards.length - 1);
+      }
+
+      // 給歌詞那邊用的全域函式
+      window.showMaterialCard = showMaterialCard;
+
+      if (materialCards.length) {
+        showMaterialCard(0);
+        setupMaterialStars(); // ★ 在這裡綁星星
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          showMaterialCard(currentMaterialIndex - 1);
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          showMaterialCard(currentMaterialIndex + 1);
+        });
+      }
+
+      // === Material page: 歌詞點擊 → 單字卡跳頁 ===
+      const lyricsContainer = document.querySelector('.lyrics-text');
+
+      console.log('[material] init, hasLyrics =', !!lyricsContainer, 'cards =', materialCards.length);
+
+      // 共同的「正規化單字」函式：變小寫、去掉非字母與 '
+      function normalizeKey(str) {
+        return (str || '')
+          .toLowerCase()
+          .replace(/[^a-z']/g, '');
+      }
+
+      if (lyricsContainer && materialCards.length) {
+        const vocabToIndex = {};
+        materialCards.forEach((card, idx) => {
+          const raw =
+            card.dataset.vocab ||
+            card.getAttribute('data-word') ||
+            (card.querySelector('.vocab-word') &&
+            card.querySelector('.vocab-word').textContent) ||
+            '';
+
+          const key = normalizeKey(raw);
+          if (key && !(key in vocabToIndex)) {
+            vocabToIndex[key] = idx;
+          }
+        });
+
+        console.log('[material] vocabToIndex keys =', Object.keys(vocabToIndex).slice(0, 20), '...');
+
+        function showMaterialCardFromLyrics(idx) {
+          showMaterialCard(idx);
+
+          const pager = document.getElementById('materials_pager');
+          if (pager) pager.textContent = `${idx + 1} / ${materialCards.length}`;
+        }
+
+        lyricsContainer.addEventListener('click', (e) => {
+          const wordEl = e.target.closest('.lyrics-word');
+          if (!wordEl) return;
+
+          const raw =
+            wordEl.dataset.vocab ||
+            wordEl.textContent ||
+            '';
+          const key = normalizeKey(raw);
+
+          const targetIndex = vocabToIndex[key];
+          console.log('[material] click word:', raw, '→ key:', key, '→ index:', targetIndex);
+
+          if (targetIndex == null) return;
+
+          showMaterialCardFromLyrics(targetIndex);
+
+          document.querySelectorAll('.lyrics-word--active')
+            .forEach((el) => el.classList.remove('lyrics-word--active'));
+          wordEl.classList.add('lyrics-word--active');
+        });
+      }
+    }
+
+    // ====== 收藏星星 ======
+    function setupMaterialStars() {
+      // 這個 selector 要跟你 HTML 一致：<i class="fas fa-star fav-star">
+      const stars = document.querySelectorAll('.material-card .fav-star');
+      console.log('[material] setupMaterialStars: found', stars.length, 'stars');
+
+      if (!stars.length) return;
+
+      stars.forEach((star) => {
+        star.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation(); // 避免點星星的 click 影響到其他 handler
+
+          star.classList.toggle('is-fav');
+          console.log('[material] star clicked, isFav =', star.classList.contains('is-fav'));
+        });
+      });
+    }
+
+
   });
 })();
