@@ -9,7 +9,7 @@ require 'slim/include'
 # LingoBeats: include routing and service
 module LingoBeats
   # Web App
-  class App < Roda
+  class App < Roda # rubocop:disable Metrics/ClassLength
     plugin :flash
     plugin :all_verbs # allows HTTP verbs beyond GET/POST (e.g., DELETE)
     plugin :render, engine: 'slim', views: 'app/presentation/views_html'
@@ -172,7 +172,6 @@ module LingoBeats
             }
           end
         end
-
       end
     end
 

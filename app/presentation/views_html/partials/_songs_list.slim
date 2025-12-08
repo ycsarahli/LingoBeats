@@ -10,9 +10,9 @@
       .row.justify-content-center.g-0
         - if has_title
           .col-12.col-md-10.col-lg-9
-            h5.text-warning.d-flex.align-items-center.fs-6.mb-2
+            h5.text-danger.d-flex.align-items-center.fs-6.mb-2
               - if has_icon
-                i class="fas fa-#{icon} text-warning me-2" aria-hidden="true"
+                i class="fas fa-#{icon} text-danger me-2" aria-hidden="true"
               = title
 
         - songs.each do |song|

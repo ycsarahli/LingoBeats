@@ -881,6 +881,71 @@
       });
     }
 
+    // --- Tutorial ---
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const mainContent = document.getElementById('main-content');
+    const navLinks = document.querySelectorAll('.nav-link-custom');
+    const sections = document.querySelectorAll('.section-spy');
 
+    // 1. Sidebar 收合功能
+    // 增加 null check 防止如果在其他頁面引用此 JS 會報錯
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    // 2. 平滑滾動 (點擊左側導航)
+    navLinks.forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetSection = document.getElementById(targetId);
+            
+            if (targetSection && mainContent) {
+                // 計算滾動位置
+                const topPos = targetSection.offsetTop;
+                // 注意：這裡不需要減去 header 高度，因為 mainContent 是獨立滾動的
+                mainContent.scrollTo({
+                    top: topPos - 20, 
+                    behavior: 'smooth'
+                });
+                
+                updateActiveLink(targetId);
+            }
+        });
+    });
+
+    function updateActiveLink(id) {
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if(link.getAttribute('href') === '#' + id) {
+                link.classList.add('active');
+            }
+        });
+    }
+
+    // 3. ScrollSpy (滾動監聽)
+    // 確保有元素才執行
+    if (mainContent && sections.length > 0) {
+        const observerOptions = {
+            root: mainContent, 
+            rootMargin: '-20% 0px -60% 0px', 
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    updateActiveLink(entry.target.id);
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+    }
   });
 })();

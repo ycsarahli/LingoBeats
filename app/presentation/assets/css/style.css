@@ -12,6 +12,9 @@ body {
 :root {
   --lingobeats-green: #1DB954;
   --text-midgray: #666;
+  --lingobeats-light-green: rgba(29, 185, 84, 0.1);
+  --sidebar-width: 210px;
+  --sidebar-bg: #f8f9fa;
 }
 
 .text-midgray {
@@ -607,6 +610,186 @@ body.modal-open {
   border-radius: 4px;
   opacity: 1;
   visibility: visible;
+}
+
+/* =========================================================
+    Tutorial
+   ========================================================= */
+body.tutorial-page {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.tutorial-container {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 50px); 
+  overflow: hidden;
+  position: relative;
+  margin-top: 0; 
+  padding-bottom: 50px;
+}
+
+/* --- left sidebar --- */
+.sidebar-container {
+  width: var(--sidebar-width);
+  transition: width 0.3s ease;
+  overflow: visible !important;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar-container.collapsed {
+  width: 0;
+  border-right: none !important;
+}
+
+/* Sidebar */
+.sidebar-content {
+  width: var(--sidebar-width);
+  flex-grow: 1;
+  overflow-y: auto;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-container.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- Navigation Links --- */
+.nav-link-custom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-left: 0;
+  border-radius: 0 50px 50px 0;
+  padding: 0.8rem 1rem; 
+  text-decoration: none;
+  
+  /* default: inactive */
+  color: #6c757d;
+  background-color: transparent;
+
+  font-weight: 700;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  width: 95%;
+}
+
+.nav-link-custom:hover {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+.nav-link-custom.active {
+  color: #0da341 !important; 
+  background-color: var(--lingobeats-light-green) !important;
+}
+
+.nav-link-custom.active:hover {
+  color: var(--lingobeats-green) !important;
+  background-color: var(--lingobeats-light-green) !important;
+}
+
+/* --- Toggle Button --- */
+.sidebar-toggle-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+  box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  outline: none;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: white;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2) !important;
+  transform: scale(1.05);
+}
+
+.sidebar-container.collapsed .sidebar-toggle-btn {
+  right: auto;
+  left: 0;
+  width: 24px; 
+  border-radius: 0 50% 50% 0 !important; /* right half circle */
+  background-color: var(--sidebar-bg) !important;
+  border-color: #adb5bd;
+  border-left: none !important;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.15) !important;
+  transform-origin: left center;
+}
+
+.sidebar-toggle-btn i {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-container.collapsed .sidebar-toggle-btn i {
+  transform: rotate(180deg);
+  margin-left: 2px;
+}
+
+/* --- right main content --- */
+.main-content-area {
+  flex-grow: 1;
+  height: 100%;
+  overflow-y: auto;
+  background-color: white;
+  position: relative;
+}
+
+/* --- card visual --- */
+.section-title {
+  border-bottom: 3px solid var(--lingobeats-green);
+  padding-bottom: 1rem;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  background-color: var(--lingobeats-green);
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.step-card {
+  border-left: 4px solid var(--lingobeats-green);
+  transition: all 0.3s ease;
+  position: relative;
+  top: 0;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.step-card:hover {
+  top: -2px;
+  box-shadow: 0 1rem 3rem rgba(0,0,0,.1) !important;
+}
+
+.placeholder-image {
+  height: 250px;
+  background-color: #e9ecef;
+  border: 2px dashed #dee2e6;
+}
+
+.review-placeholder {
+  height: 400px;
 }
 
 /* ===============================
