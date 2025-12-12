@@ -18,7 +18,7 @@
       - normalized_vocab = {}
       - if defined?(materials) && materials.respond_to?(:each)
         - materials.each do |m|
-          - word = m.word || m[:word]
+          - word = m.origin_word || m[:word]
           - key  = word.to_s.downcase.gsub(/[^a-z']/,'')
           - normalized_vocab[key] = true unless key.empty?
 
@@ -52,7 +52,8 @@
             - main_pos = first_meaning[:pos] || first_meaning['pos']
 
           .card.mb-4.shadow-sm.material-card(
-            data-word=material.word.downcase
+            data-origin-word=material.origin_word.to_s.downcase
+            data-lemma=material.word.to_s.downcase
             data-index=idx
             class=(idx == 0 ? '' : 'd-none')
           )

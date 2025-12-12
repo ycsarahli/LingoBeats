@@ -15,6 +15,10 @@ module Views
       @material.word
     end
 
+    def origin_word
+      @material.origin_word
+    end
+
     def level
       @material.level
     end

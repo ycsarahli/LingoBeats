@@ -816,20 +816,42 @@
       if (lyricsContainer && materialCards.length) {
         const vocabToIndex = {};
         materialCards.forEach((card, idx) => {
-          const raw =
-            card.dataset.vocab ||
-            card.getAttribute('data-word') ||
-            (card.querySelector('.vocab-word') &&
-            card.querySelector('.vocab-word').textContent) ||
+          // const raw =
+          //   card.dataset.originWord ||
+          //   card.getAttribute('data-origin-word') ||
+          //   card.dataset.vocab ||
+          //   (card.querySelector('.vocab-word') &&
+          //   card.querySelector('.vocab-word').textContent) ||
+          //   '';
+
+          // const key = normalizeKey(raw);
+          // if (key && !(key in vocabToIndex)) {
+          //   vocabToIndex[key] = idx;
+          // }
+          materialCards.forEach((card, idx) => {
+          const originRaw =
+            card.dataset.originWord ||
+            card.getAttribute('data-origin-word') ||
             '';
 
-          const key = normalizeKey(raw);
-          if (key && !(key in vocabToIndex)) {
-            vocabToIndex[key] = idx;
-          }
+          const lemmaRaw =
+            card.dataset.lemma ||
+            card.getAttribute('data-lemma') ||
+            card.dataset.vocab ||               // 兼容你舊的
+            card.getAttribute('data-word') ||
+            '';
+
+          const originKey = normalizeKey(originRaw);
+          const lemmaKey  = normalizeKey(lemmaRaw);
+
+          // 同一張卡，存兩把 key（origin + lemma）
+          if (originKey && !(originKey in vocabToIndex)) vocabToIndex[originKey] = idx;
+          if (lemmaKey  && !(lemmaKey  in vocabToIndex)) vocabToIndex[lemmaKey]  = idx;
+        });
         });
 
         console.log('[material] vocabToIndex keys =', Object.keys(vocabToIndex).slice(0, 20), '...');
+        console.log('[material] has running?', 'running' in vocabToIndex,'idx=', vocabToIndex['running']);
 
         function showMaterialCardFromLyrics(idx) {
           showMaterialCard(idx);
