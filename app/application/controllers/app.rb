@@ -49,8 +49,6 @@ module LingoBeats
           [Views::SongsList.new(songs), error]
         end
 
-        App.logger.info("Rendering home with #{songs.count} popular songs")
-
         # Only use browser caching in production
         App.configure :production do
           response.expires 300, public: true
