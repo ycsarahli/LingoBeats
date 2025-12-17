@@ -6,12 +6,10 @@ require 'slim'
 require 'rack'
 require 'slim/include'
 
-require_relative 'helpers'
-
 # LingoBeats: include routing and service
 module LingoBeats
   # Web App
-  class App < Roda
+  class App < Roda # rubocop:disable Metrics/ClassLength
     plugin :flash
     plugin :all_verbs # allows HTTP verbs beyond GET/POST (e.g., DELETE)
     plugin :render, engine: 'slim', views: 'app/presentation/views_html'
@@ -21,14 +19,9 @@ module LingoBeats
     plugin :common_logger, $stderr
     plugin :halt
     plugin :multi_route
+    plugin :caching
 
     use Rack::MethodOverride # allows HTTP verbs beyond GET/POST (e.g., DELETE)
-
-    MESSAGES = {
-      invalid_query: 'Invalid search query',
-      search_failed: 'Error in searching songs',
-      no_songs_found: 'No songs found for the given query'
-    }.freeze
 
     route do |routing|
       routing.assets   # load CSS/JS from assets plugin
@@ -40,15 +33,20 @@ module LingoBeats
         @current_page = :home
 
         # Get cookie viewer's previously searched
-        session[:song_search_history] || []
-        session[:singer_search_history] || []
+        # session[:song_search_history] || []
+        # session[:singer_search_history] || []
         history = Service::ListSearchHistories.new.call(session)
         search_history = Views::SearchHistory.new(history.value!)
 
         # Show popular songs on home page
         result = Service::ListSongs.new.call(:popular)
-        songs, bad_message = RouteHelpers::ResultParser.parse_multi(result) do |songs, error|
+        songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
           [Views::SongsList.new(songs), error]
+        end
+
+        # Only use browser caching in production
+        App.configure :production do
+          response.expires 300, public: true
         end
 
         view 'home', locals: { songs:, bad_message:, search_history: }
@@ -76,15 +74,16 @@ module LingoBeats
 
     # search songs
     route('songs') do |routing|
-      # GET /songs/search?category=...&query=...
-      routing.on 'search' do
+      # /songs
+      routing.is do
+        # GET /songs?category=...&query=...
         routing.get do
-          url_request = Forms::NewSong.new.call(routing.params)
-          category = url_request[:category]
-          query = url_request[:query]
+          list_request = Forms::NewSong.new.call(routing.params)
+          category = list_request[:category]
+          query = list_request[:query]
 
-          result = Service::ListSongs.new.call(url_request)
-          songs, bad_message = RouteHelpers::ResultParser.parse_multi(result) do |songs, error|
+          result = Service::ListSongs.new.call(list_request)
+          songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
             [Views::SongsList.new(songs), error]
           end
 
@@ -92,33 +91,88 @@ module LingoBeats
           result = Service::AddSearchHistory.new.call(session, category, query)
           search_history = Views::SearchHistory.new(result.value!)
 
+          App.configure :production do
+            response.expires 300, public: true
+          end
+
           view 'song', locals: { songs:, category:, query:, bad_message:, search_history: }
         end
       end
 
-      # GET /songs/:id/materials
-      # routing.on String do |song_id|
-      #   routing.on 'materials' do
-      #     routing.get do
-      #       song = Repository::For.klass(Entity::Song).find_id(song_id)
+      # /songs/:id
+      routing.on String do |song_id|
+        # GET /songs/:id/lyrics
+        routing.on 'lyrics' do
+          routing.get do
+            result = Service::GetLyric.new.call(song_id)
+            lyrics, bad_message = RouteHelpers::ResultParser.parse_single(result) do |lyric, error|
+              [Views::Lyric.new(lyric), error]
+            end
 
-      #       unless song
-      #         routing.halt(404, "Song #{song_id} not found")
-      #       end
+            App.configure :production do
+              response.expires 300, public: true
+            end
 
-      #       cfg = App.config
+            view 'lyrics_block', locals: { lyrics:, bad_message: }, layout: false
+          end
+        end
 
-      #       materials = LingoBeats::Vocabularies::Services::GenerateMaterialsForSong.new(
-      #         vocabulary_repo: Repository::For.klass(Entity::Vocabulary),
-      #         mapper: LingoBeats::Gemini::VocabularyMapper.new(
-      #           access_token: cfg.GEMINI_API_KEY
-      #         )
-      #       ).call(song)
+        # GET /songs/:id/level
+        routing.on 'level' do
+          routing.get do
+            result = Service::GetSongLevel.new.call(song_id)
+            level, bad_message = RouteHelpers::ResultParser.parse_single(result) do |level, error|
+              [Views::Level.new(level), error]
+            end
 
-      #       view 'materials', locals: { materials:, song: }
-      #     end
-      #   end
-      # end
+            view 'level_block', locals: { level:, bad_message: }, layout: false
+          end
+        end
+
+        # GET /songs/:id/material
+        routing.on 'material' do
+          routing.get do
+            # 1) 先跟 API 要「教材 + song」
+            result = Service::EnsureMaterial.new.call(song_id)
+
+            song        = nil
+            materials   = Views::MaterialsList.new([])
+            bad_message = nil
+
+            if result.success?
+              # payload 預期是 #<OpenStruct song: <Song>, contents: [...]>
+              payload = result.value!
+
+              song = payload.song
+
+              vocab_array = payload.contents || []
+              materials   = Views::MaterialsList.new(
+                vocab_array.map { |h| OpenStruct.new(h) }
+              )
+            else
+              bad_message = result.message
+            end
+
+            # 2) 再用 Service::GetLyric 拿歌詞
+            lyrics = nil
+            lyrics_result = Service::GetLyric.new.call(song_id)
+
+            if lyrics_result.success?
+              lyrics = Views::Lyric.new(lyrics_result.value!)
+            else
+              bad_message ||= lyrics_result.message
+            end
+
+            # 3) 丟進 material.slim
+            view 'material', locals: {
+              song:,
+              lyrics:,
+              materials:,
+              bad_message:
+            }
+          end
+        end
+      end
     end
 
     # manage search history
@@ -126,32 +180,11 @@ module LingoBeats
       # DELETE /search_history?category=...&query=...
       routing.is do
         routing.delete do
-          url_request = Forms::DeleteSearch.new.call(routing.params)
+          url_request = Forms::NewSong.new.call(routing.params)
           Service::RemoveSearchHistory.new.call(session: session, request: url_request)
 
           response.status = 204
           routing.halt
-        end
-      end
-    end
-
-    # search lyrics
-    route('lyrics') do |routing|
-      # GET /lyrics/song?id=...&name=...&singer=...
-      routing.on 'song' do
-        routing.get do
-          # 1. Validate parameters
-          url_request = Forms::NewLyric.new.call(routing.params)
-
-          # 2. Call new AddLyric pipelin
-          result = Service::AddLyric.new.call(url_request)
-
-          # 3. Parse result (success or failure)
-          lyrics, bad_message = RouteHelpers::ResultParser.parse_single(result) do |lyric, error|
-            [Views::Lyric.new(lyric).text, error]
-          end
-
-          view 'lyrics_block', locals: { lyrics:, bad_message: }, layout: false
         end
       end
     end

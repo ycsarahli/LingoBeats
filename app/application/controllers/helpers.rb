@@ -6,18 +6,25 @@ module LingoBeats
     class ResultParser
       def self.parse_single(result)
         if result.failure?
-          yield(nil, result.failure)
+          yield(nil, parse_failure_response(result.failure))
         else
           yield(result.value!, nil)
         end
       end
 
-      def self.parse_multi(result)
+      def self.parse_multi(result, represent)
         if result.failure?
-          yield([], result.failure)
+          yield([], parse_failure_response(result.failure))
         else
-          yield(result.value!, nil)
+          yield(result.value!.public_send(represent), nil)
         end
+      end
+
+      def self.parse_failure_response(failure)
+        parsed = JSON.parse(failure)
+        parsed['message']
+      rescue JSON::ParserError
+        failure
       end
     end
   end

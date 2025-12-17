@@ -6,8 +6,6 @@ An application that transforms *songs* into AI-generated *materials* for an enga
 
 LingoBeats will connect to **Spotify** to retrieve songs and **Genius** to fetch lyrics, then analyzes the text using **Zipf frequency** and **CEFR levels** to match content with each learner’s proficiency. 
 
-Leveraging **Wordnik**, it enriches users’ vocabulary understanding through contextual meanings and usage examples. 
-
 Finally, **Gemini AI** generates personalized learning contents and exercises based on the linguistic insights extracted from the previous stages.
 
 By combining music, AI, and intelligent content generation, LingoBeats hopes to turn passive listening into an interactive and personalized learning journey, boosting learners’ motivation.
@@ -55,4 +53,4 @@ By combining music, AI, and intelligent content generation, LingoBeats hopes to 
 
 ## **Running Application**
 
-<pre><code>rake app:run</pre></code>
+<pre><code>rake run</pre></code>

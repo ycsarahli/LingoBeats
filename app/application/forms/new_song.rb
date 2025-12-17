@@ -7,7 +7,7 @@ module LingoBeats
     # Form validation for song search
     class NewSong < Dry::Validation::Contract
       CATEGORY = %w[singer song_name].freeze
-      MSG_INVALID_CATEGORY = 'is not a valid category'
+      MSG_INVALID_CATEGORY = 'not a valid category'
       MSG_EMPTY_QUERY = 'query should not be empty'
 
       params do

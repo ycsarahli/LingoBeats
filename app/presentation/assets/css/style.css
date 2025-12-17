@@ -3,19 +3,26 @@
    ========================================================= */
 body {
   padding-top: 50px;
-  /* for fixed header */
   overflow: hidden;
   padding-left: 2rem;
   padding-right: 2rem;
+  height: 100vh;
 }
 
 :root {
   --lingobeats-green: #1DB954;
   --text-midgray: #666;
+  --lingobeats-light-green: rgba(29, 185, 84, 0.1);
+  --sidebar-width: 210px;
+  --sidebar-bg: #f8f9fa;
 }
 
 .text-midgray {
   color: var(--text-midgray);
+}
+
+.text-gold { 
+  color: #ffd700 !important; 
 }
 
 .bg-lingobeats {
@@ -24,6 +31,21 @@ body {
 
 .text-main {
   color: var(--lingobeats-green) !important;
+}
+
+.btn-lingobeats {
+  background-color: var(--lingobeats-green);
+  border-color: var(--lingobeats-green);
+  transition: all 0.3s ease; 
+}
+
+.btn-lingobeats:hover,
+.btn-lingobeats:active, 
+.btn-lingobeats:focus {
+  background-color: #1aa34a;
+  border-color: #1aa34a;
+  color: white !important;
+  box-shadow: 0 0 0 0.25rem rgba(29, 185, 84, 0.5);
 }
 
 /* =========================================================
@@ -227,7 +249,7 @@ body {
   pointer-events: none;
 }
 
-.card.song-card:hover .play-overlay,
+.cover-wrap:hover .play-overlay,
 .modal-body .position-relative:hover #modalPlayOverlay {
   opacity: 1;
   background-color: rgba(0, 0, 0, 0.4);
@@ -272,6 +294,17 @@ body {
 
 .card-body {
   flex: 1;
+}
+
+/* Card hover effect */
+.card.song-card {
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.card.song-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -333,9 +366,16 @@ body.modal-open {
 }
 
 .modal-custom-width {
-  max-width: 960px;
-  width: calc(100% - 4rem);
-  margin: 0 auto;
+  max-width: 75vw !important;
+  width: 75vw !important;
+  margin: auto !important;
+}
+
+@media (max-width: 576px) {
+  .modal-custom-width{
+    max-width: 85vw !important;
+    width: 85vw !important;
+  }
 }
 
 .modal-content {
@@ -411,26 +451,63 @@ body.modal-open {
   #modalSongTitle {
     font-size: 1.25rem;
   }
+
+  #modalSongTitle,
+  #modalAlbum,
+  #modalSingers {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
 }
 
 /* Lyrics content */
 #modalLyrics {
   overflow-y: auto !important;
   overflow-x: hidden;
-  white-space: pre-wrap;
-  word-break: break-word;
   max-height: 52vh;
   text-align: left;
+}
+
+@media (max-width: 991.98px) {
+  #modalLyrics {
+    height: 40vh;
+    max-height: 40vh;
+  }
+}
+
+#modalLyrics .lyrics-content {
+  white-space: pre-wrap;
+  word-break: break-word;
   font-family: 'Space Mono', monospace !important;
   font-size: 0.9rem;
 }
 
-#modalLyrics:empty,
-#modalLyrics.loading {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
+.lyrics-loading {
+  padding: 0.75rem 0.5rem;
+}
+
+.lyrics-skeleton-line {
+  height: 1rem;
+  margin-bottom: 0.7rem;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 0%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.06) 80%
+  );
+  background-size: 200% 100%;
+  animation: lyricsSkeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.lyrics-skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+/* Shimmer animation */
+@keyframes lyricsSkeletonShimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Singer text color */
@@ -438,6 +515,31 @@ body.modal-open {
 #modalSingers p,
 #modalSingers a {
   color: var(--text-midgray);
+}
+
+/* difficulty stars */
+.difficulty-skeleton {
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 0%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.06) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: lyricsSkeletonShimmer 1.4s ease-in-out infinite;
+}
+
+#difficultyStars .difficulty-skeleton:nth-child(1) {
+  animation-delay: 0s;
+}
+#difficultyStars .difficulty-skeleton:nth-child(2) {
+  animation-delay: 0.12s;
+}
+#difficultyStars .difficulty-skeleton:nth-child(3) {
+  animation-delay: 0.24s;
 }
 
 /* =========================================================
@@ -465,7 +567,12 @@ body.modal-open {
   margin: 0;
 }
 
-.history-badge:hover {
+.history-badge.filter-hidden {
+  display: none !important;
+}
+
+.history-badge:hover,
+.history-badge.active {
   background-color: #f6f6f6;
 }
 
@@ -504,3 +611,427 @@ body.modal-open {
   opacity: 1;
   visibility: visible;
 }
+
+/* =========================================================
+    Tutorial
+   ========================================================= */
+body.tutorial-page {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.tutorial-container {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 50px); 
+  overflow: hidden;
+  position: relative;
+  margin-top: 0; 
+  padding-bottom: 50px;
+}
+
+/* --- left sidebar --- */
+.sidebar-container {
+  width: var(--sidebar-width);
+  transition: width 0.3s ease;
+  overflow: visible !important;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar-container.collapsed {
+  width: 0;
+  border-right: none !important;
+}
+
+/* Sidebar */
+.sidebar-content {
+  width: var(--sidebar-width);
+  flex-grow: 1;
+  overflow-y: auto;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-container.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- Navigation Links --- */
+.nav-link-custom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-left: 0;
+  border-radius: 0 50px 50px 0;
+  padding: 0.8rem 1rem; 
+  text-decoration: none;
+  
+  /* default: inactive */
+  color: #6c757d;
+  background-color: transparent;
+
+  font-weight: 700;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  width: 95%;
+}
+
+.nav-link-custom:hover {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+.nav-link-custom.active {
+  color: #0da341 !important; 
+  background-color: var(--lingobeats-light-green) !important;
+}
+
+.nav-link-custom.active:hover {
+  color: var(--lingobeats-green) !important;
+  background-color: var(--lingobeats-light-green) !important;
+}
+
+/* --- Toggle Button --- */
+.sidebar-toggle-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+  box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  outline: none;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: white;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2) !important;
+  transform: scale(1.05);
+}
+
+.sidebar-container.collapsed .sidebar-toggle-btn {
+  right: auto;
+  left: 0;
+  width: 24px; 
+  border-radius: 0 50% 50% 0 !important; /* right half circle */
+  background-color: var(--sidebar-bg) !important;
+  border-color: #adb5bd;
+  border-left: none !important;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.15) !important;
+  transform-origin: left center;
+}
+
+.sidebar-toggle-btn i {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-container.collapsed .sidebar-toggle-btn i {
+  transform: rotate(180deg);
+  margin-left: 2px;
+}
+
+/* --- right main content --- */
+.main-content-area {
+  flex-grow: 1;
+  height: 100%;
+  overflow-y: auto;
+  background-color: white;
+  position: relative;
+}
+
+/* --- card visual --- */
+.section-title {
+  border-bottom: 3px solid var(--lingobeats-green);
+  padding-bottom: 1rem;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  background-color: var(--lingobeats-green);
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.step-card {
+  border-left: 4px solid var(--lingobeats-green);
+  transition: all 0.3s ease;
+  position: relative;
+  top: 0;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.step-card:hover {
+  top: -2px;
+  box-shadow: 0 1rem 3rem rgba(0,0,0,.1) !important;
+}
+
+.placeholder-image {
+  height: 250px;
+  background-color: #e9ecef;
+  border: 2px dashed #dee2e6;
+}
+
+.review-placeholder {
+  height: 400px;
+}
+
+/* ===============================
+   Material page layout
+   =============================== */
+
+/* 主 layout：左右分欄 */
+.main-material-layout {
+  display: flex;
+  gap: 2rem;
+  height: calc(100vh - 50px - 4rem);  /* 50px navbar + 上下 padding 2rem+2rem */
+  min-height: 0;                       /* 關鍵：讓子元素高度可以被壓縮 */
+}
+
+/* 左欄：歌曲資訊 */
+.song-panel {
+  flex: 0 0 50%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.card.song-card {
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.card.song-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.song-card.card,
+.lyrics-card.card {
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* 右欄：教材區 */
+.material-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;   /* 關鍵：配合 flex，讓下面的 .materials-scroll 能變成「有界高度」 */
+}
+
+/* 標題固定 */
+.material-panel h2 {
+  flex-shrink: 0;
+  margin: 0 !important;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* 卡片容器：這裡捲動 */
+.materials-scroll {
+  height: 600px;
+  flex: 1;              /* 吃掉剩下全部高度 */
+  min-height: 0;        /* 關鍵：不要撐破父層 */
+  overflow-y: auto;     /* 只能這裡上下捲動 */
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+  /* border: 2px solid red; */
+}
+
+/* 卡片本身 */
+.material-card {
+  flex-shrink: 0;  /* 加這行：防止卡片被壓縮 */
+}
+
+/* 把單字卡右上角的等級顏色改成主視覺綠 */
+.material-card .badge.bg-success {
+  background-color: var(--lingobeats-green) !important;
+  border-color: var(--lingobeats-green) !important;
+  color: #fff !important;
+}
+
+/* normal：黃色 */
+.material-card .badge.bg-warning {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #fff !important; /* 深色字，比較好讀 */
+}
+
+/* hard：紅色 */
+.material-card .badge.bg-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+/* 單字卡 header：左右兩邊 */
+.material-card .material-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.material-card .material-header-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+/* level badge 右邊那一小塊 */
+.material-card .material-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 收藏星星 */
+.material-card .fav-star {
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: #ccc;            /* 灰色預設 */
+  transition: color 0.15s ease;
+}
+
+/* 被收藏時（黃色） */
+.material-card .fav-star.is-fav {
+  color: #f5c518;         /* 想換成主視覺黃可以自己調 */
+}
+
+
+
+/* 單字卡 header：左邊 word + 詞性，右邊 level(A/B/C...) */
+.material-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 左右兩側拉開 */
+  gap: 0.5rem;
+}
+
+.material-card .definition-en .definition-zh {
+  font-weight: 600;
+  color: #2c3e50; /* 深色，提高可讀性 */
+}
+
+.material-card .sentence-en {
+  color: #797979; /* 比定義淺 */
+  margin-top: 0.5rem;
+}
+
+.material-card .explanation-zh {
+  color: #777; /* 再淡一階 */
+}
+
+/* 左邊那坨字（單字 + VERB）橫向排在一起 */
+.word-block {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.material-pager {
+  padding-top: 0.25rem;
+  border-top: 1px solid #eee;
+}
+
+#materialCounter {
+  min-width: 80px;
+  text-align: center;
+}
+
+/* 左欄：歌曲資訊 + 歌詞 */
+.song-panel {
+  flex: 0 0 45%;      /* 如果想變 1/2 可以調成 50% */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow: hidden;   /* 自己不捲，由裡面的歌詞區捲 */
+}
+
+/* 標題區：封面 + 基本資訊 */
+.song-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.song-header .album-cover {
+  width: 120px;
+  height: 120px;
+  flex: 0 0 120px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.song-header .album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song-meta .song-title {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+/* 歌詞區：這裡捲動 */
+.lyrics-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.lyrics-text {
+  white-space: pre-wrap;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.lyrics-text {
+  white-space: pre-wrap;   /* 保留換行又可以自動換行 */
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+/* 有單字卡的詞 */
+.lyrics-word {
+  padding: 0 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* 滑鼠移上去的效果 */
+.lyrics-word:hover {
+  background-color: rgba(29, 185, 84, 0.12);   /* 主視覺綠的淡版 */
+  box-shadow: 0 0 0 1px rgba(29, 185, 84, 0.3);
+}
+
+/* 之後點擊選中的狀態（先定義好，下一步 JS 會用到） */
+.lyrics-word--active {
+  background-color: rgba(29, 185, 84, 0.22);
+  box-shadow: 0 0 0 1px #1db954;
+}
+
