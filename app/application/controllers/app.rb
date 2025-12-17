@@ -30,6 +30,11 @@ module LingoBeats
 
       # GET /
       routing.root do
+        logger.info('Home page accessed')
+        api_base = App.config.API_HOST
+        logger.info("LingoBeats API Host: #{api_base}")
+
+
         @current_page = :home
 
         # Get cookie viewer's previously searched
@@ -43,6 +48,8 @@ module LingoBeats
         songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
           [Views::SongsList.new(songs), error]
         end
+
+        logger.info("Rendering home with #{songs.count} popular songs")
 
         # Only use browser caching in production
         App.configure :production do
