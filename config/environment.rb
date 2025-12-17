@@ -15,7 +15,7 @@ module LingoBeats
       environment: ENV.fetch('RACK_ENV', 'development'),
       path: File.expand_path('config/secrets.yml')
     )
-    Figaro.load
+    Figaro.load if File.exist?(File.expand_path('config/secrets.yml'))
     def self.config = Figaro.env
 
     use Rack::Session::Cookie, secret: config.SESSION_SECRET
