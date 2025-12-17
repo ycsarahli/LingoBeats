@@ -45,7 +45,10 @@ module LingoBeats
 
         # Show popular songs on home page
         result = Service::ListSongs.new.call(:popular)
+        App.logger.info("List popular songs result: #{result.inspect}")
         songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
+          App.logger.info("Parsing popular songs succeeded: #{songs.size} songs")
+          App.logger.info("Parsing popular songs failed: #{error}")
           [Views::SongsList.new(songs), error]
         end
 
