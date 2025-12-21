@@ -34,7 +34,6 @@ module LingoBeats
         api_base = App.config.API_HOST
         App.logger.info("LingoBeats API Host: #{api_base}")
 
-
         @current_page = :home
 
         # Get cookie viewer's previously searched
@@ -76,7 +75,29 @@ module LingoBeats
     route('history') do |routing|
       routing.get do
         @current_page = :history
-        view 'history'
+
+        saved_vocabularies = []
+        history_error = nil
+
+        begin
+          result = Service::ListStarVocabularies.new.call(session)
+          if result.success?
+            payload = result.value!
+            saved_vocabularies =
+              if payload.respond_to?(:vocabularies)
+                Array(payload.vocabularies)
+              else
+                Array(payload)
+              end
+          else
+            history_error = result.failure || '目前無法取得收藏單字'
+          end
+        rescue StandardError => e
+          App.logger.error(e.full_message)
+          history_error = '目前無法取得收藏單字'
+        end
+
+        view 'history', locals: { saved_vocabularies:, history_error: }
       end
     end
 
@@ -140,43 +161,39 @@ module LingoBeats
         # GET /songs/:id/material
         routing.on 'material' do
           routing.get do
-            # 1) 先跟 API 要「教材 + song」
-            result = Service::EnsureMaterial.new.call(song_id)
+            result = Service::EnsureMaterial.new.call(song_id, session:)
 
-            song        = nil
-            materials   = Views::MaterialsList.new([])
+            song = nil
+            lyrics = nil
+            materials = Views::MaterialsList.new([])
+            starred_vocab_ids = []
             bad_message = nil
 
             if result.success?
-              # payload 預期是 #<OpenStruct song: <Song>, contents: [...]>
               payload = result.value!
 
-              song = payload.song
+              song_entity = payload.song
+              song = song_entity ? Views::Song.new(song_entity) : nil
 
-              vocab_array = payload.contents || []
-              materials   = Views::MaterialsList.new(
-                vocab_array.map { |h| OpenStruct.new(h) }
-              )
+              lyric_entity = payload.lyrics
+              lyrics = lyric_entity ? Views::Lyric.new(lyric_entity) : nil
+
+              materials_list = payload.materials || []
+              materials = Views::MaterialsList.new(materials_list)
+
+              starred_vocab_ids = payload.starred_vocab_ids || []
+              warnings = Array(payload.warnings).compact
+              bad_message = warnings.first
             else
-              bad_message = result.message
+              bad_message = result.failure
             end
 
-            # 2) 再用 Service::GetLyric 拿歌詞
-            lyrics = nil
-            lyrics_result = Service::GetLyric.new.call(song_id)
-
-            if lyrics_result.success?
-              lyrics = Views::Lyric.new(lyrics_result.value!)
-            else
-              bad_message ||= lyrics_result.message
-            end
-
-            # 3) 丟進 material.slim
             view 'material', locals: {
               song:,
               lyrics:,
               materials:,
-              bad_message:
+              bad_message:,
+              starred_vocab_ids:
             }
           end
         end
@@ -193,6 +210,44 @@ module LingoBeats
 
           response.status = 204
           routing.halt
+        end
+      end
+    end
+
+    # add star for vocabulary
+    route('vocabulary') do |routing|
+      routing.on 'star', String do |vocab_id|
+        # POST /vocabulary/star/:id
+        routing.post do
+          result = Service::AddStarVocabulary.new.call(session, vocab_id)
+
+          if result.success?
+            response.status = 201
+            notification = Views::Notification.new(message: result.value!, status: :success)
+          else
+            response.status = 500
+            failure_message = result.failure || '收藏失敗'
+            notification = Views::Notification.new(message: failure_message, status: :error)
+          end
+
+          puts "[DEBUG] session after adding star: #{session.inspect}"
+          view '/partials/_notification', locals: { notification: }, layout: false
+        end
+
+        # DELETE /vocabulary/star/:id
+        routing.delete do
+          result = Service::RemoveStarVocabulary.new.call(session, vocab_id)
+
+          if result.success?
+            response.status = 201
+            notification = Views::Notification.new(message: result.value!, status: :success)
+          else
+            response.status = 500
+            failure_message = result.failure || '移除失敗'
+            notification = Views::Notification.new(message: failure_message, status: :error)
+          end
+
+          view '/partials/_notification', locals: { notification: }, layout: false
         end
       end
     end

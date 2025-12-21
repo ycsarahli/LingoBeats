@@ -1,22 +1,17 @@
 # frozen_string_literal: true
 
-require_relative 'material'
+require_relative 'vocab'
 
 module Views
   # View for a a list of material entities
   class MaterialsList
-
     attr_reader :song
 
     def initialize(materials)
-      # @song = materials.song
       @materials = Array(materials).map do |vocab|
         vocab_obj = vocab.is_a?(Hash) ? OpenStruct.new(vocab) : vocab
-        vocab_obj.is_a?(Material) ? vocab_obj : Material.new(vocab_obj)
+        vocab_obj.is_a?(Vocab) ? vocab_obj : Vocab.new(vocab_obj)
       end
-      # @materials = materials.map do |material|
-      #   material.is_a?(Material) ? material : Material.new(material)
-      # end
     end
 
     def each(&show)

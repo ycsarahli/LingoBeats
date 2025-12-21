@@ -1,0 +1,58 @@
+ruby:
+  fetch_value = lambda do |entity, key|
+    if entity.respond_to?(key)
+      entity.public_send(key)
+    elsif entity.respond_to?(:[]) && !entity.is_a?(String)
+      entity[key] || entity[key.to_s] || entity[key.to_sym]
+    end
+  end
+
+  default_pos = defined?(default_pos) ? default_pos : nil
+  meanings = defined?(meanings) ? Array(meanings) : []
+  related_forms = defined?(related_forms) ? Array(related_forms) : []
+
+- if meanings.any? || related_forms.any?
+  .meaning-list
+    - if meanings.any?
+      - meanings.each_with_index do |meaning, meaning_idx|
+        - def_en = fetch_value.call(meaning, :definition_en) || meaning[:definition_en] || meaning['definition_en']
+        - def_zh = fetch_value.call(meaning, :definition_zh) || meaning[:definition_zh] || meaning['definition_zh']
+        - examples = fetch_value.call(meaning, :examples) || meaning[:examples] || meaning['examples'] || []
+        - examples = examples.respond_to?(:to_a) ? examples.to_a : Array(examples)
+        - pos_label = fetch_value.call(meaning, :pos) || meaning[:pos] || meaning['pos'] || default_pos
+        - block_classes = ['meaning-block', 'pt-3', 'mt-2']
+        - block_classes << 'border-top' if meaning_idx.positive?
+
+        .meaning-block class=block_classes.join(' ')
+          - if def_zh || pos_label
+            p.definition-zh.mb-1.text-muted
+              - if pos_label
+                span.pos-chip.text-uppercase.me-2 = pos_label
+              = def_zh if def_zh
+          - if def_en
+            p.definition-en.mb-0.fw-semibold = def_en
+
+          - if examples.any?
+            .examples.mt-3
+              span.example-label.badge.bg-light.text-uppercase.me-2 EX
+              - examples.each do |ex|
+                - sen_en = fetch_value.call(ex, :sentence_en) || ex[:sentence_en] || ex['sentence_en']
+                - exp_zh = fetch_value.call(ex, :explanation_zh) || ex[:explanation_zh] || ex['explanation_zh']
+                .example-item.mb-1
+                  - if sen_en
+                    p.sentence-en.mb-0 = sen_en
+                  - if exp_zh
+                    p.explanation-zh.mb-0.text-muted.small = exp_zh
+
+    - if related_forms.any?
+      .history-related-forms.mt-4.pt-3.border-top
+        p.text-muted.small.mb-2 Synonym
+        .related-form-chips.d-flex.flex-wrap.gap-2
+          - related_forms.each do |rel|
+            - rel_form = fetch_value.call(rel, :form) || rel[:form] || rel['form']
+            - rel_pos = fetch_value.call(rel, :pos) || rel[:pos] || rel['pos']
+            - next unless rel_form
+            .related-form-chip.d-flex.align-items-center.gap-2
+              span.related-form-text = rel_form
+              - if rel_pos
+                span.pos-pill = rel_pos

@@ -43,6 +43,10 @@ module LingoBeats
         @request.add_song_material(id)
       end
 
+      def find_vocabularies(ids)
+        @request.find_vocabularies(ids)
+      end
+
       # HTTP request transmitter
       class Request
         def initialize(config)
@@ -81,6 +85,10 @@ module LingoBeats
 
         def add_song_material(id)
           call_api('post', ['songs', id, 'material'])
+        end
+
+        def find_vocabularies(ids)
+          call_api('get', ['vocabularies'], { ids: ids.join(',') })
         end
 
         private

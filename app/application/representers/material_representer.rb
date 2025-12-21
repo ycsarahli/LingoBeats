@@ -1,7 +1,27 @@
+# # frozen_string_literal: true
+
+# require 'roar/decorator'
+# require 'roar/json'
+
+# module LingoBeats
+#   module Representer
+#     # Represents essential Material information for API output
+#     class Material < Roar::Decorator
+#       include Roar::JSON
+
+#       property :song
+#       property :contents
+#     end
+#   end
+# end
+
 # frozen_string_literal: true
 
 require 'roar/decorator'
 require 'roar/json'
+
+require_relative 'openstruct_with_links'
+require_relative 'vocabulary_representer'
 
 module LingoBeats
   module Representer
@@ -10,7 +30,9 @@ module LingoBeats
       include Roar::JSON
 
       property :song
-      property :contents
+      collection :contents,
+                 extend: Representer::Vocabulary,
+                 class: Representer::OpenStructWithLinks
     end
   end
 end

@@ -25,6 +25,10 @@
       singer: 'e.g. Taylor Swift'
     };
 
+    document
+      .querySelectorAll('.notification-toast-container')
+      .forEach(setupNotificationToast);
+
     // --- Helpers for pill switch ---
     const getActiveLink = () => switcher?.querySelector('.nav-link.active');
 
@@ -566,14 +570,14 @@
       resetLyricsDisplay(container);
 
       try {
-        const res  = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
+        const res = await fetch(`/songs/${songId}/lyrics`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const html = await res.text();
         if (!isCurrentSong(songId)) return;
 
         const loadingEl = container.querySelector('.lyrics-loading');
-        const errorEl   = container.querySelector('.lyrics-error');
+        const errorEl = container.querySelector('.lyrics-error');
         const contentEl = container.querySelector('.lyrics-content');
 
         loadingEl?.classList.add('d-none');
@@ -601,7 +605,7 @@
 
     function resetLyricsDisplay(container) {
       const loadingEl = container.querySelector('.lyrics-loading');
-      const errorEl   = container.querySelector('.lyrics-error');
+      const errorEl = container.querySelector('.lyrics-error');
       const contentEl = container.querySelector('.lyrics-content');
 
       loadingEl?.classList.remove('d-none');
@@ -745,7 +749,7 @@
       errorEl?.classList.add('d-none');
       contentEl.innerHTML = '';
     }
-    
+
     // ====== Material page only ======
     if (/^\/songs\/[^/]+\/material/.test(window.location.pathname)) {
       console.log('[material] script loaded, path =', window.location.pathname);
@@ -829,29 +833,29 @@
           //   vocabToIndex[key] = idx;
           // }
           materialCards.forEach((card, idx) => {
-          const originRaw =
-            card.dataset.originWord ||
-            card.getAttribute('data-origin-word') ||
-            '';
+            const originRaw =
+              card.dataset.originWord ||
+              card.getAttribute('data-origin-word') ||
+              '';
 
-          const lemmaRaw =
-            card.dataset.lemma ||
-            card.getAttribute('data-lemma') ||
-            card.dataset.vocab ||               // 兼容你舊的
-            card.getAttribute('data-word') ||
-            '';
+            const lemmaRaw =
+              card.dataset.lemma ||
+              card.getAttribute('data-lemma') ||
+              card.dataset.vocab ||               // 兼容你舊的
+              card.getAttribute('data-word') ||
+              '';
 
-          const originKey = normalizeKey(originRaw);
-          const lemmaKey  = normalizeKey(lemmaRaw);
+            const originKey = normalizeKey(originRaw);
+            const lemmaKey = normalizeKey(lemmaRaw);
 
-          // 同一張卡，存兩把 key（origin + lemma）
-          if (originKey && !(originKey in vocabToIndex)) vocabToIndex[originKey] = idx;
-          if (lemmaKey  && !(lemmaKey  in vocabToIndex)) vocabToIndex[lemmaKey]  = idx;
-        });
+            // 同一張卡，存兩把 key（origin + lemma）
+            if (originKey && !(originKey in vocabToIndex)) vocabToIndex[originKey] = idx;
+            if (lemmaKey && !(lemmaKey in vocabToIndex)) vocabToIndex[lemmaKey] = idx;
+          });
         });
 
         console.log('[material] vocabToIndex keys =', Object.keys(vocabToIndex).slice(0, 20), '...');
-        console.log('[material] has running?', 'running' in vocabToIndex,'idx=', vocabToIndex['running']);
+        console.log('[material] has running?', 'running' in vocabToIndex, 'idx=', vocabToIndex['running']);
 
         function showMaterialCardFromLyrics(idx) {
           showMaterialCard(idx);
@@ -884,23 +888,1017 @@
       }
     }
 
+    function ensureNotificationStack() {
+      let stack = document.getElementById('notificationToastStack');
+      if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'notificationToastStack';
+        document.body.appendChild(stack);
+      }
+      return stack;
+    }
+
+    function appendNotificationToast(html) {
+      const trimmed = (html || '').trim();
+      if (!trimmed) return;
+      const container = document.createElement('div');
+      container.innerHTML = trimmed;
+      const toast = container.firstElementChild;
+      if (toast) setupNotificationToast(toast);
+    }
+
+    function buildInlineNotification(message, status = 'notification-error') {
+      const safeMessage = message || '';
+      return `
+        <div class="notification-toast-container">
+          <div class="notification-toast ${status}" role="alert" aria-live="polite">
+            <span class="notification-message">${safeMessage}</span>
+            <button class="btn-close" type="button" aria-label="Close" data-dismiss-toast></button>
+          </div>
+        </div>`;
+    }
+
+    function setupNotificationToast(container) {
+      if (!container || container.dataset.toastReady === '1') return;
+      const stack = ensureNotificationStack();
+      stack.prepend(container);
+      container.dataset.toastReady = '1';
+
+      const closeBtn = container.querySelector('[data-dismiss-toast]');
+      let removeTimer;
+
+      const beginHide = () => {
+        if (container.dataset.toastClosing === '1') return;
+        container.dataset.toastClosing = '1';
+        container.classList.add('toast-hiding');
+        container.classList.remove('toast-visible');
+        window.clearTimeout(removeTimer);
+        window.setTimeout(() => container.remove(), 350);
+      };
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (event) => {
+          event.preventDefault();
+          beginHide();
+        });
+      }
+
+      requestAnimationFrame(() => {
+        container.classList.add('toast-visible');
+      });
+
+      removeTimer = window.setTimeout(() => {
+        beginHide();
+      }, 3000);
+    }
+
     // ====== 收藏星星 ======
     function setupMaterialStars() {
-      // 這個 selector 要跟你 HTML 一致：<i class="fas fa-star fav-star">
-      const stars = document.querySelectorAll('.material-card .fav-star');
+      const materialPanel = document.querySelector('.material-panel');
+      if (!materialPanel) return;
+      const stars = materialPanel.querySelectorAll('.fav-star');
       console.log('[material] setupMaterialStars: found', stars.length, 'stars');
 
       if (!stars.length) return;
 
       stars.forEach((star) => {
-        star.addEventListener('click', (e) => {
+        star.addEventListener('click', async (e) => {
           e.preventDefault();
-          e.stopPropagation(); // 避免點星星的 click 影響到其他 handler
+          e.stopPropagation();
 
-          star.classList.toggle('is-fav');
-          console.log('[material] star clicked, isFav =', star.classList.contains('is-fav'));
+          if (star.dataset.pending === '1') return;
+          const vocabId = star.dataset.vocabId;
+          if (!vocabId) return;
+
+          const currentlyFav = star.classList.contains('is-fav');
+          const method = currentlyFav ? 'DELETE' : 'POST';
+          star.dataset.pending = '1';
+
+          try {
+            const response = await fetch(`/vocabulary/star/${encodeURIComponent(vocabId)}`, {
+              method,
+              headers: {
+                'Accept': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            const html = await response.text();
+            appendNotificationToast(html);
+
+            if (response.ok) {
+              star.classList.toggle('is-fav', !currentlyFav);
+            } else {
+              console.warn('[material] star toggle failed', response.status);
+            }
+          } catch (error) {
+            console.error('[material] star error', error);
+            appendNotificationToast(buildInlineNotification('連線失敗，請稍後再試'));
+          } finally {
+            delete star.dataset.pending;
+          }
         });
       });
+    }
+
+    initHistoryPage();
+
+    function initHistoryPage() {
+      const historyPage = document.querySelector('.history-page');
+      if (!historyPage) return;
+
+      const panels = historyPage.querySelectorAll('.history-mode-panel');
+      const modeButtons = historyPage.querySelectorAll('.history-mode-btn');
+
+      function showPanel(targetSelector) {
+        panels.forEach((panel) => {
+          const shouldShow = `#${panel.id}` === targetSelector;
+          panel.classList.toggle('d-none', !shouldShow);
+        });
+      }
+
+      modeButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.target;
+          if (!target) return;
+
+          modeButtons.forEach((button) => button.classList.remove('active'));
+          btn.classList.add('active');
+          showPanel(target);
+        });
+      });
+
+      const initialMode = historyPage.querySelector('.history-mode-btn.active') || modeButtons[0];
+      const initialTarget = initialMode?.dataset?.target;
+      if (initialTarget) {
+        showPanel(initialTarget);
+      } else if (panels.length) {
+        panels[0].classList.remove('d-none');
+      }
+
+      const vocabViewButtons = historyPage.querySelectorAll('.vocab-view-btn');
+      const vocabLayout = historyPage.querySelector('.history-vocab-layout');
+      const vocabBrowser = historyPage.querySelector('.history-vocab-browser');
+      const flashcardPanel = historyPage.querySelector('.history-flashcard-panel');
+      const flashcardWrapper = historyPage.querySelector('.history-flashcard-wrapper');
+      const flashcardNavPrev = historyPage.querySelector('[data-flashcard-nav="prev"]');
+      const flashcardNavNext = historyPage.querySelector('[data-flashcard-nav="next"]');
+      const flashcardCounter = historyPage.querySelector('#historyFlashcardCounter');
+      const difficultyTabs = historyPage.querySelectorAll('.difficulty-tab');
+      const vocabInner = historyPage.querySelector('.history-vocab-inner');
+      const detailPanel = historyPage.querySelector('.history-vocab-detail-panel');
+      const detailBody = detailPanel?.querySelector('.history-vocab-detail-body');
+      const detailBackButton = detailPanel?.querySelector('.history-detail-back');
+      const mobileDetailQuery = window.matchMedia('(max-width: 991.98px)');
+      const getVocabItems = () => historyPage.querySelectorAll('.history-vocab-item');
+      let flashcardIndex = 0;
+      let flashcardList = [];
+      const supportsPointerEvents = 'PointerEvent' in window;
+      let swipeStartX = null;
+      let swipeStartY = null;
+      let swipeDeltaX = 0;
+      let swipeDragged = false;
+      let swipeCard = null;
+      let currentDifficultyFilter = 'all';
+      let activeVocabItem = null;
+
+      vocabViewButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const view = btn.dataset.view;
+          vocabViewButtons.forEach((button) => button.classList.remove('active'));
+          btn.classList.add('active');
+
+          if (view === 'flashcards') {
+            vocabLayout?.classList.add('d-none');
+            vocabBrowser?.classList.add('d-none');
+            detailPanel?.classList.add('d-none');
+            flashcardPanel?.classList.remove('d-none');
+            vocabInner?.classList.remove('detail-open');
+            refreshFlashcards();
+            window.addEventListener('resize', handleFlashcardResize);
+          } else {
+            vocabLayout?.classList.remove('d-none');
+            vocabBrowser?.classList.remove('d-none');
+            detailPanel?.classList.remove('d-none');
+            flashcardPanel?.classList.add('d-none');
+            window.removeEventListener('resize', handleFlashcardResize);
+            if (!mobileDetailQuery.matches && activeVocabItem) {
+              setActiveVocabItem(activeVocabItem);
+            }
+          }
+        });
+      });
+
+      setupDifficultyTabs();
+      bindVocabItems();
+      initializeDetailPanel();
+
+      flashcardNavPrev?.addEventListener('click', () => stepFlashcard(-1));
+      flashcardNavNext?.addEventListener('click', () => stepFlashcard(1));
+
+      // 設置閃卡高度
+      function setFlashcardHeight(card) {
+        if (!card) return;
+
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const aspectRatio = windowWidth / windowHeight;
+
+        if (aspectRatio >= 1) {
+          // 橫卡
+          if (windowWidth <= 768) {
+            card.style.height = Math.min(windowHeight * 0.6, 450) + 'px';
+            card.style.maxWidth = Math.min(windowWidth * 0.9, 700) + 'px';
+          } else {
+            card.style.height = '450px';
+            card.style.maxWidth = '700px';
+          }
+        } else {
+          // 直卡
+          if (windowWidth <= 768) {
+            card.style.height = Math.min(windowHeight * 0.7, 600) + 'px';
+            card.style.maxWidth = Math.min(windowWidth * 0.9, 500) + 'px';
+          } else {
+            card.style.height = '600px';
+            card.style.maxWidth = '500px';
+          }
+        }
+      }
+
+      // 視窗 resize 處理
+      function handleFlashcardResize() {
+        if (!flashcardList.length) return;
+        flashcardList.forEach(card => setFlashcardHeight(card));
+      }
+
+      function refreshFlashcards() {
+        flashcardList = Array.from(historyPage.querySelectorAll('.history-flashcard'));
+
+        flashcardList = flashcardList.filter(card => {
+          if (currentDifficultyFilter === 'all') return true;
+          const word = card.dataset.word;
+          const matchingItem = historyPage.querySelector(`.history-vocab-item[data-word="${word}"]`);
+          return matchingItem && !matchingItem.classList.contains('d-none');
+        });
+
+        if (!flashcardList.length) {
+          flashcardIndex = 0;
+          updateFlashcardCounter();
+          updateFlashcardNavButtons();
+          return;
+        }
+
+        flashcardList.forEach((card, idx) => {
+          card.dataset.index = idx;
+          setFlashcardHeight(card);
+
+          if (card.dataset.flipBound) return;
+          card.dataset.flipBound = '1';
+
+          card.addEventListener('click', (e) => {
+            if (swipeDragged) return;
+            if (e.target.closest('.fav-star') || e.target.closest('.flashcard-nav-btn')) {
+              return;
+            }
+            card.classList.toggle('is-flipped');
+          });
+
+          card.addEventListener('keypress', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            card.classList.toggle('is-flipped');
+          });
+        });
+
+        if (flashcardIndex >= flashcardList.length) {
+          flashcardIndex = flashcardList.length - 1;
+        }
+        if (flashcardIndex < 0) flashcardIndex = 0;
+
+        showFlashcard(flashcardIndex);
+        updateFlashcardNavButtons();
+        bindHistoryStars(flashcardWrapper);
+      }
+
+      function updateFlashcardCounter() {
+        if (flashcardCounter) {
+          if (!flashcardList.length) {
+            flashcardCounter.textContent = '0 / 0';
+          } else {
+            flashcardCounter.textContent = `${flashcardIndex + 1} / ${flashcardList.length}`;
+          }
+        }
+      }
+
+      function updateFlashcardNavButtons() {
+        if (flashcardNavPrev) {
+          const isDisabled = flashcardIndex === 0 || !flashcardList.length;
+          flashcardNavPrev.disabled = isDisabled;
+          flashcardNavPrev.style.opacity = isDisabled ? '0.3' : '1';
+          flashcardNavPrev.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+        }
+
+        if (flashcardNavNext) {
+          const isDisabled = flashcardIndex === flashcardList.length - 1 || !flashcardList.length;
+          flashcardNavNext.disabled = isDisabled;
+          flashcardNavNext.style.opacity = isDisabled ? '0.3' : '1';
+          flashcardNavNext.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+        }
+      }
+
+      function showFlashcard(idx) {
+        if (!flashcardList.length) {
+          updateFlashcardCounter();
+          updateFlashcardNavButtons();
+          return;
+        }
+
+        if (idx < 0) idx = 0;
+        if (idx >= flashcardList.length) idx = flashcardList.length - 1;
+
+        const allCards = historyPage.querySelectorAll('.history-flashcard');
+        allCards.forEach((card) => {
+          const cardIndex = flashcardList.indexOf(card);
+          const isActive = cardIndex === idx && cardIndex !== -1;
+
+          card.classList.toggle('d-none', !isActive);
+          card.classList.toggle('active', isActive);
+
+          if (!isActive) {
+            card.classList.remove('is-flipped');
+          }
+
+          card.classList.remove('dragging');
+          card.style.transform = '';
+          card.style.opacity = '';
+        });
+
+        flashcardIndex = idx;
+        updateFlashcardCounter();
+        updateFlashcardNavButtons();
+
+        swipeCard = null;
+        swipeStartX = null;
+        swipeStartY = null;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+      }
+
+      function stepFlashcard(delta) {
+        if (!flashcardList.length) return;
+
+        if ((delta < 0 && flashcardIndex === 0) ||
+          (delta > 0 && flashcardIndex === flashcardList.length - 1)) {
+          return;
+        }
+
+        let target = flashcardIndex + delta;
+        if (target < 0) target = 0;
+        if (target >= flashcardList.length) target = flashcardList.length - 1;
+        if (target === flashcardIndex) return;
+
+        showFlashcard(target);
+      }
+
+      if (flashcardWrapper) {
+        if (supportsPointerEvents) {
+          flashcardWrapper.addEventListener('pointerdown', (e) => {
+            if (!flashcardList.length || e.button > 0) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            startSwipe(e.clientX, e.clientY);
+          });
+
+          flashcardWrapper.addEventListener('pointermove', (e) => {
+            if (swipeStartX == null) return;
+            moveSwipe(e.clientX, e.clientY);
+          });
+
+          flashcardWrapper.addEventListener('pointerup', () => endSwipe());
+          flashcardWrapper.addEventListener('pointercancel', () => endSwipe());
+          flashcardWrapper.addEventListener('pointerleave', () => {
+            if (swipeStartX != null) endSwipe();
+          });
+        } else {
+          flashcardWrapper.addEventListener('touchstart', (e) => {
+            if (!flashcardList.length) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            startSwipe(touch.clientX, touch.clientY);
+          }, { passive: true });
+
+          flashcardWrapper.addEventListener('touchmove', (e) => {
+            if (swipeStartX == null) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            moveSwipe(touch.clientX, touch.clientY);
+          }, { passive: true });
+
+          flashcardWrapper.addEventListener('touchend', () => endSwipe());
+
+          flashcardWrapper.addEventListener('mousedown', (e) => {
+            if (!flashcardList.length || e.button !== 0) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            startSwipe(e.clientX, e.clientY);
+            function handleMove(ev) {
+              moveSwipe(ev.clientX, ev.clientY);
+            }
+            function handleUp() {
+              document.removeEventListener('mousemove', handleMove);
+              document.removeEventListener('mouseup', handleUp);
+              endSwipe();
+            }
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
+          });
+        }
+      }
+
+      function isTargetInActiveCard(target) {
+        const activeCard = flashcardList[flashcardIndex];
+        if (!activeCard) return false;
+        return activeCard.contains(target);
+      }
+
+      function startSwipe(x, y) {
+        const activeCard = flashcardList[flashcardIndex];
+        if (!activeCard) return;
+
+        swipeStartX = x;
+        swipeStartY = y;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+        swipeCard = activeCard;
+      }
+
+      function moveSwipe(x, y) {
+        if (swipeStartX == null) return;
+
+        const deltaX = x - swipeStartX;
+        const deltaY = y - swipeStartY;
+        const activeCard = swipeCard || flashcardList[flashcardIndex];
+
+        if (!activeCard) return;
+
+        if (!swipeDragged) {
+          if (Math.abs(deltaX) < 10 || Math.abs(deltaX) < Math.abs(deltaY)) {
+            return;
+          }
+          swipeDragged = true;
+        }
+
+        const isFirstCard = flashcardIndex === 0;
+        const isLastCard = flashcardIndex === flashcardList.length - 1;
+
+        let adjustedDeltaX = deltaX;
+        if ((isFirstCard && deltaX > 0) || (isLastCard && deltaX < 0)) {
+          adjustedDeltaX = deltaX * 0.3;
+        }
+
+        activeCard.classList.add('dragging');
+        activeCard.style.transform = `translateX(${adjustedDeltaX}px)`;
+
+        const opacity = 1 - Math.abs(adjustedDeltaX) / 300;
+        activeCard.style.opacity = Math.max(0.5, opacity);
+
+        swipeDeltaX = deltaX;
+      }
+
+      function endSwipe() {
+        if (swipeStartX == null) return;
+
+        const activeCard = swipeCard || flashcardList[flashcardIndex];
+        const wasDragging = swipeDragged;
+
+        if (activeCard) {
+          activeCard.classList.remove('dragging');
+          activeCard.style.transform = '';
+          activeCard.style.opacity = '';
+        }
+
+        const swipeThreshold = 60;
+        if (wasDragging && Math.abs(swipeDeltaX) > swipeThreshold) {
+          const dir = swipeDeltaX < 0 ? 1 : -1;
+          stepFlashcard(dir);
+        }
+
+        swipeStartX = null;
+        swipeStartY = null;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+        swipeCard = null;
+      }
+
+      function stepFlashcard(delta) {
+        if (!flashcardList.length) return;
+
+        // 檢查邊界
+        if ((delta < 0 && flashcardIndex === 0) ||
+          (delta > 0 && flashcardIndex === flashcardList.length - 1)) {
+          return;
+        }
+
+        let target = flashcardIndex + delta;
+        if (target < 0) target = 0;
+        if (target >= flashcardList.length) target = flashcardList.length - 1;
+        if (target === flashcardIndex) return;
+
+        showFlashcard(target);
+      }
+
+      // 拖曳相關的事件處理
+      if (flashcardWrapper) {
+        if (supportsPointerEvents) {
+          flashcardWrapper.addEventListener('pointerdown', (e) => {
+            if (!flashcardList.length || e.button > 0) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            startSwipe(e.clientX, e.clientY);
+          });
+
+          flashcardWrapper.addEventListener('pointermove', (e) => {
+            if (swipeStartX == null) return;
+            moveSwipe(e.clientX, e.clientY);
+          });
+
+          flashcardWrapper.addEventListener('pointerup', () => endSwipe());
+          flashcardWrapper.addEventListener('pointercancel', () => endSwipe());
+          flashcardWrapper.addEventListener('pointerleave', () => {
+            if (swipeStartX != null) endSwipe();
+          });
+        } else {
+          flashcardWrapper.addEventListener('touchstart', (e) => {
+            if (!flashcardList.length) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            startSwipe(touch.clientX, touch.clientY);
+          }, { passive: true });
+
+          flashcardWrapper.addEventListener('touchmove', (e) => {
+            if (swipeStartX == null) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            moveSwipe(touch.clientX, touch.clientY);
+          }, { passive: true });
+
+          flashcardWrapper.addEventListener('touchend', () => endSwipe());
+
+          flashcardWrapper.addEventListener('mousedown', (e) => {
+            if (!flashcardList.length || e.button !== 0) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            startSwipe(e.clientX, e.clientY);
+            function handleMove(ev) {
+              moveSwipe(ev.clientX, ev.clientY);
+            }
+            function handleUp() {
+              document.removeEventListener('mousemove', handleMove);
+              document.removeEventListener('mouseup', handleUp);
+              endSwipe();
+            }
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
+          });
+        }
+      }
+
+      function isTargetInActiveCard(target) {
+        const activeCard = flashcardList[flashcardIndex];
+        if (!activeCard) return false;
+        return activeCard.contains(target);
+      }
+
+      function startSwipe(x, y) {
+        const activeCard = flashcardList[flashcardIndex];
+        if (!activeCard) return;
+
+        swipeStartX = x;
+        swipeStartY = y;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+        swipeCard = activeCard;
+      }
+
+      function moveSwipe(x, y) {
+        if (swipeStartX == null) return;
+
+        const deltaX = x - swipeStartX;
+        const deltaY = y - swipeStartY;
+        const activeCard = swipeCard || flashcardList[flashcardIndex];
+
+        if (!activeCard) return;
+
+        // 判斷是否為水平拖曳
+        if (!swipeDragged) {
+          // 需要至少 10px 的水平移動，且水平移動要大於垂直移動
+          if (Math.abs(deltaX) < 10 || Math.abs(deltaX) < Math.abs(deltaY)) {
+            return;
+          }
+          swipeDragged = true;
+        }
+
+        // 檢查邊界，防止在邊緣繼續拖曳
+        const isFirstCard = flashcardIndex === 0;
+        const isLastCard = flashcardIndex === flashcardList.length - 1;
+
+        // 如果是第一張且向右拖，或最後一張且向左拖，減少移動距離
+        let adjustedDeltaX = deltaX;
+        if ((isFirstCard && deltaX > 0) || (isLastCard && deltaX < 0)) {
+          adjustedDeltaX = deltaX * 0.3; // 阻力效果
+        }
+
+        activeCard.classList.add('dragging');
+        activeCard.style.transform = `translateX(${adjustedDeltaX}px)`;
+
+        // 拖曳時降低透明度
+        const opacity = 1 - Math.abs(adjustedDeltaX) / 300;
+        activeCard.style.opacity = Math.max(0.5, opacity);
+
+        swipeDeltaX = deltaX;
+      }
+
+      function endSwipe() {
+        if (swipeStartX == null) return;
+
+        const activeCard = swipeCard || flashcardList[flashcardIndex];
+        const wasDragging = swipeDragged;
+
+        // 清除拖曳樣式
+        if (activeCard) {
+          activeCard.classList.remove('dragging');
+          activeCard.style.transform = '';
+          activeCard.style.opacity = '';
+        }
+
+        // 如果拖曳距離超過閾值，切換卡片
+        const swipeThreshold = 60;
+        if (wasDragging && Math.abs(swipeDeltaX) > swipeThreshold) {
+          // 向左拖 = 下一張，向右拖 = 上一張
+          const dir = swipeDeltaX < 0 ? 1 : -1;
+          stepFlashcard(dir);
+        }
+
+        // 重置狀態
+        swipeStartX = null;
+        swipeStartY = null;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+        swipeCard = null;
+      }
+
+      function stepFlashcard(delta) {
+        if (!flashcardList.length) return;
+        if ((delta < 0 && flashcardIndex === 0) ||
+          (delta > 0 && flashcardIndex === flashcardList.length - 1)) {
+          return;
+        }
+        let target = flashcardIndex + delta;
+        if (target < 0) target = 0;
+        if (target >= flashcardList.length) target = flashcardList.length - 1;
+        if (target === flashcardIndex) return;
+        showFlashcard(target);
+      }
+
+      if (flashcardWrapper) {
+        if (supportsPointerEvents) {
+          flashcardWrapper.addEventListener('pointerdown', (e) => {
+            if (!flashcardList.length || e.button > 0) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            startSwipe(e.clientX, e.clientY);
+          });
+
+          flashcardWrapper.addEventListener('pointermove', (e) => {
+            if (swipeStartX == null) return;
+            moveSwipe(e.clientX, e.clientY);
+          });
+
+          flashcardWrapper.addEventListener('pointerup', () => endSwipe());
+          flashcardWrapper.addEventListener('pointercancel', () => endSwipe());
+          flashcardWrapper.addEventListener('pointerleave', () => {
+            if (swipeStartX != null) endSwipe();
+          });
+        } else {
+          flashcardWrapper.addEventListener('touchstart', (e) => {
+            if (!flashcardList.length) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            startSwipe(touch.clientX, touch.clientY);
+          }, { passive: true });
+
+          flashcardWrapper.addEventListener('touchmove', (e) => {
+            if (swipeStartX == null) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            moveSwipe(touch.clientX, touch.clientY);
+          }, { passive: true });
+
+          flashcardWrapper.addEventListener('touchend', () => endSwipe());
+
+          flashcardWrapper.addEventListener('mousedown', (e) => {
+            if (!flashcardList.length || e.button !== 0) return;
+            if (e.target.closest('.flashcard-nav-btn')) return;
+            if (!isTargetInActiveCard(e.target)) return;
+            startSwipe(e.clientX, e.clientY);
+            function handleMove(ev) {
+              moveSwipe(ev.clientX, ev.clientY);
+            }
+            function handleUp() {
+              document.removeEventListener('mousemove', handleMove);
+              document.removeEventListener('mouseup', handleUp);
+              endSwipe();
+            }
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
+          });
+        }
+      }
+
+      function isTargetInActiveCard(target) {
+        const activeCard = flashcardList[flashcardIndex];
+        if (!activeCard) return false;
+        return activeCard.contains(target);
+      }
+
+      function startSwipe(x, y) {
+        const activeCard = flashcardList[flashcardIndex];
+        if (!activeCard) return;
+        swipeStartX = x;
+        swipeStartY = y;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+        swipeCard = activeCard;
+      }
+
+      function moveSwipe(x, y) {
+        if (swipeStartX == null) return;
+        const deltaX = x - swipeStartX;
+        const deltaY = y - swipeStartY;
+        const activeCard = swipeCard || flashcardList[flashcardIndex];
+        if (!activeCard) return;
+        if (!swipeDragged) {
+          if (Math.abs(deltaX) < 10 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+          swipeDragged = true;
+        }
+        activeCard.classList.add('dragging');
+        activeCard.style.transform = `translateX(${deltaX}px)`;
+        swipeDeltaX = deltaX;
+      }
+
+      function endSwipe() {
+        if (swipeStartX == null) return;
+        const activeCard = swipeCard || flashcardList[flashcardIndex];
+        const wasDragging = swipeDragged;
+        if (activeCard) {
+          activeCard.classList.remove('dragging');
+          activeCard.style.transform = '';
+        }
+        if (wasDragging && Math.abs(swipeDeltaX) > 60) {
+          const dir = swipeDeltaX < 0 ? 1 : -1;
+          stepFlashcard(dir);
+        }
+
+        swipeStartX = null;
+        swipeStartY = null;
+        swipeDeltaX = 0;
+        swipeDragged = false;
+        swipeCard = null;
+      }
+
+      const modalEl = document.getElementById('historyUnstarModal');
+      const skipCheckbox = modalEl?.querySelector('#historyUnstarSkip');
+      const confirmBtn = modalEl?.querySelector('[data-confirm-unstar]');
+      const hasBootstrap = typeof bootstrap !== 'undefined';
+      const modal = modalEl && hasBootstrap ? new bootstrap.Modal(modalEl) : null;
+      const skipStorageKey = 'lb_skip_unstar_confirm';
+      let pendingStar = null;
+
+      bindHistoryStars();
+
+      confirmBtn?.addEventListener('click', () => {
+        if (!pendingStar) return;
+        if (skipCheckbox && skipCheckbox.checked) {
+          localStorage.setItem(skipStorageKey, '1');
+        }
+        modal?.hide();
+        performHistoryUnstar(pendingStar);
+      });
+
+      modalEl?.addEventListener('hidden.bs.modal', () => {
+        pendingStar = null;
+      });
+
+      updateVocabEmptyState();
+      refreshFlashcards();
+
+      function bindHistoryStars(scope = historyPage) {
+        if (!scope) return;
+        scope.querySelectorAll('.fav-star').forEach((star) => {
+          if (star.dataset.historyBound === '1') return;
+          star.dataset.historyBound = '1';
+          star.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (star.dataset.pending === '1') return;
+            const wordKey = (star.dataset.historyWord || '').toLowerCase();
+            const vocabId = star.dataset.vocabId;
+            if (!wordKey && !vocabId) return;
+
+            const skipConfirm = localStorage.getItem(skipStorageKey) === '1';
+            if (skipConfirm || !modal) {
+              performHistoryUnstar(star);
+              return;
+            }
+
+            pendingStar = star;
+            if (skipCheckbox) skipCheckbox.checked = false;
+            modal.show();
+          });
+        });
+      }
+
+      function updateVocabEmptyState() {
+        const hasItems = !!historyPage.querySelector('.history-vocab-item');
+        const emptyState = historyPage.querySelector('.history-vocab-empty');
+        const interactive = historyPage.querySelector('.history-vocab-interactive');
+
+        emptyState?.classList.toggle('d-none', hasItems);
+        interactive?.classList.toggle('d-none', !hasItems);
+      }
+
+      async function performHistoryUnstar(star) {
+        if (!star) return;
+        if (star.dataset.pending === '1') return;
+        const wordKey = (star.dataset.historyWord || '').toLowerCase();
+        const vocabId = star.dataset.vocabId;
+        star.dataset.pending = '1';
+
+        const handleLocalRemoval = () => {
+          removeWordFromHistory(wordKey);
+          bindHistoryStars();
+        };
+
+        try {
+          if (vocabId) {
+            const response = await fetch(`/vocabulary/star/${encodeURIComponent(vocabId)}`, {
+              method: 'DELETE',
+              headers: {
+                'Accept': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            const html = await response.text();
+            appendNotificationToast(html);
+            if (!response.ok) {
+              console.warn('[history] unstar failed', response.status);
+              return;
+            }
+          }
+          handleLocalRemoval();
+        } catch (error) {
+          console.error('[history] unstar error', error);
+          appendNotificationToast(buildInlineNotification('連線失敗，請稍後再試'));
+        } finally {
+          delete star.dataset.pending;
+          pendingStar = null;
+        }
+      }
+
+      function removeWordFromHistory(wordKey) {
+        if (!wordKey) return;
+        const normalized = wordKey.toLowerCase();
+
+        historyPage.querySelectorAll(`.history-vocab-item[data-word="${normalized}"]`)
+          .forEach((el) => el.remove());
+        historyPage.querySelectorAll(`.history-flashcard[data-word="${normalized}"]`)
+          .forEach((el) => el.remove());
+
+        applyDifficultyFilter(currentDifficultyFilter);
+        updateVocabEmptyState();
+        refreshFlashcards();
+        bindHistoryStars();
+      }
+
+      function setupDifficultyTabs() {
+        if (!difficultyTabs.length) return;
+        difficultyTabs.forEach((tab) => {
+          tab.addEventListener('click', () => {
+            const filter = tab.dataset.filter || 'all';
+            difficultyTabs.forEach((btn) => btn.classList.remove('active'));
+            tab.classList.add('active');
+            applyDifficultyFilter(filter);
+          });
+        });
+        applyDifficultyFilter(currentDifficultyFilter);
+      }
+
+      function bindVocabItems() {
+        getVocabItems().forEach((item) => {
+          if (item.dataset.detailBound) return;
+          item.dataset.detailBound = '1';
+          item.addEventListener('click', () => {
+            setActiveVocabItem(item, { openDetail: true });
+          });
+        });
+      }
+
+      function initializeDetailPanel() {
+        if (!detailBody) return;
+        const firstVisible = Array.from(getVocabItems()).find((item) => !item.classList.contains('d-none'));
+        if (firstVisible && !mobileDetailQuery.matches) {
+          setActiveVocabItem(firstVisible);
+        } else {
+          showDetailPlaceholder(detailBody.dataset.placeholder || '');
+        }
+
+        if (detailBackButton) {
+          detailBackButton.addEventListener('click', () => {
+            vocabInner?.classList.remove('detail-open');
+          });
+        }
+
+        const handleMediaChange = (event) => {
+          if (!event.matches) {
+            vocabInner?.classList.remove('detail-open');
+            if (activeVocabItem) {
+              setActiveVocabItem(activeVocabItem);
+            }
+          }
+        };
+
+        if (mobileDetailQuery.addEventListener) {
+          mobileDetailQuery.addEventListener('change', handleMediaChange);
+        } else if (mobileDetailQuery.addListener) {
+          mobileDetailQuery.addListener(handleMediaChange);
+        }
+      }
+
+      function setActiveVocabItem(item, options = {}) {
+        if (!item || !detailBody) return;
+        activeVocabItem = item;
+        getVocabItems().forEach((node) => node.classList.toggle('active', node === item));
+        renderDetailFromItem(item);
+        if (mobileDetailQuery.matches) {
+          if (options.openDetail) {
+            vocabInner?.classList.add('detail-open');
+          }
+        } else {
+          vocabInner?.classList.remove('detail-open');
+        }
+      }
+
+      function renderDetailFromItem(item) {
+        if (!detailBody || !item) return;
+        const template = item.querySelector('template.vocab-detail-template');
+        if (!template) return;
+        detailBody.innerHTML = '';
+        detailBody.appendChild(template.content.cloneNode(true));
+        bindHistoryStars(detailBody);
+      }
+
+      function showDetailPlaceholder(text, { empty = false } = {}) {
+        if (!detailBody) return;
+        const placeholder =
+          text ||
+          (empty ? detailBody.dataset.empty : detailBody.dataset.placeholder) ||
+          '';
+        detailBody.innerHTML = placeholder
+          ? `<p class="text-muted mb-0">${placeholder}</p>`
+          : '';
+      }
+
+      function applyDifficultyFilter(filter) {
+        currentDifficultyFilter = filter;
+        const items = Array.from(getVocabItems());
+        items.forEach((item) => {
+          const match = filter === 'all' || item.dataset.difficulty === filter;
+          item.classList.toggle('d-none', !match);
+        });
+        bindVocabItems();
+        const visibleItems = items.filter((item) => !item.classList.contains('d-none'));
+        if (!visibleItems.length) {
+          activeVocabItem = null;
+          vocabInner?.classList.remove('detail-open');
+          showDetailPlaceholder('', { empty: true });
+        } else if (!mobileDetailQuery.matches) {
+          const nextActive = visibleItems.includes(activeVocabItem) ? activeVocabItem : visibleItems[0];
+          setActiveVocabItem(nextActive);
+        } else if (activeVocabItem && !visibleItems.includes(activeVocabItem)) {
+          activeVocabItem = null;
+          items.forEach((item) => item.classList.remove('active'));
+          vocabInner?.classList.remove('detail-open');
+          showDetailPlaceholder('');
+        }
+        refreshFlashcards();
+        bindHistoryStars();
+      }
     }
 
     // --- Tutorial ---
@@ -913,61 +1911,76 @@
     // 1. Sidebar 收合功能
     // 增加 null check 防止如果在其他頁面引用此 JS 會報錯
     if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-        });
+      toggleBtn.addEventListener('click', function () {
+        sidebar.classList.toggle('collapsed');
+      });
     }
 
     // 2. 平滑滾動 (點擊左側導航)
     navLinks.forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href').substring(1);
-            const targetSection = document.getElementById(targetId);
-            
-            if (targetSection && mainContent) {
-                // 計算滾動位置
-                const topPos = targetSection.offsetTop;
-                // 注意：這裡不需要減去 header 高度，因為 mainContent 是獨立滾動的
-                mainContent.scrollTo({
-                    top: topPos - 20, 
-                    behavior: 'smooth'
-                });
-                
-                updateActiveLink(targetId);
-            }
-        });
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href').substring(1);
+        const targetSection = document.getElementById(targetId);
+
+        if (targetSection && mainContent) {
+          // 計算滾動位置
+          const topPos = targetSection.offsetTop;
+          // 注意：這裡不需要減去 header 高度，因為 mainContent 是獨立滾動的
+          mainContent.scrollTo({
+            top: topPos - 20,
+            behavior: 'smooth'
+          });
+
+          updateActiveLink(targetId);
+        }
+      });
     });
 
     function updateActiveLink(id) {
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if(link.getAttribute('href') === '#' + id) {
-                link.classList.add('active');
-            }
-        });
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + id) {
+          link.classList.add('active');
+        }
+      });
     }
 
     // 3. ScrollSpy (滾動監聽)
     // 確保有元素才執行
     if (mainContent && sections.length > 0) {
-        const observerOptions = {
-            root: mainContent, 
-            rootMargin: '-20% 0px -60% 0px', 
-            threshold: 0
-        };
+      const observerOptions = {
+        root: mainContent,
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: 0
+      };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    updateActiveLink(entry.target.id);
-                }
-            });
-        }, observerOptions);
-
-        sections.forEach(section => {
-            observer.observe(section);
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            updateActiveLink(entry.target.id);
+          }
         });
+      }, observerOptions);
+
+      sections.forEach(section => {
+        observer.observe(section);
+      });
     }
   });
 })();
+
+function updateFlashcardNavButtons() {
+  const total = flashcardList.length;
+  const atStart = !total || flashcardIndex === 0;
+  const atEnd = !total || flashcardIndex === total - 1;
+  setNavDisabled(flashcardNavPrev, atStart);
+  setNavDisabled(flashcardNavNext, atEnd);
+}
+
+function setNavDisabled(button, disabled) {
+  if (!button) return;
+  button.classList.toggle('disabled', disabled);
+  button.disabled = disabled;
+  button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+}

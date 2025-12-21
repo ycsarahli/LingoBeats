@@ -1,47 +1,67 @@
-/ app/presentation/views_html/material.slim
+- starred_ids = (defined?(starred_vocab_ids) ? Array(starred_vocab_ids) : []).map { |id| Integer(id) rescue nil }.compact
 
-/ 頁面主 layout
-.main-material-layout
+.main-material-layout.d-flex.mt-3.min-h-0
+  // Left: Song Info Area
   .song-panel
-    / ----- 歌曲資訊（原本的保留） -----
-    - if song
-      - title  = song.title if song.respond_to?(:title)
-      - artist = song.artist if song.respond_to?(:artist)
-      h2.song-title = title || 'No title'
-      - if artist
-        p.song-artist = artist
+    - song_title = song&.name || 'No title'
+    - album_name = song&.album_name
+    - singers = song&.singers || []
+    - album_cover = song&.album_image_url
+    - cover_src = album_cover && !album_cover.to_s.empty? ? album_cover : '/placeholder-album.jpg'
+    - album_link = song&.external_url
 
-    / ----- 歌詞區 -----
-    h2 Lyrics
-    - if lyrics && lyrics.text
-      / 先把有哪些單字有 vocab 做一張表
-      - normalized_vocab = {}
-      - if defined?(materials) && materials.respond_to?(:each)
-        - materials.each do |m|
-          - word = m.origin_word || m[:word]
-          - key  = word.to_s.downcase.gsub(/[^a-z']/,'')
-          - normalized_vocab[key] = true unless key.empty?
+    .song-hero.card.shadow-sm.p-2
+      .song-hero-inner.d-flex.flex-column.flex-md-row.align-items-center.gap-4
+        .album-cd-wrapper.position-relative.d-flex.align-items-center.justify-content-center data-bs-toggle="tooltip" data-bs-placement="top" title="Listen on Spotify"
+          .album-cd style="background-image: url('#{cover_src}');" aria-label="Album cover"
+            .album-cd-hole
+          a.album-overlay href=(album_link || '#') target="_blank" rel="noopener"
+            span.play-btn.rounded-circle.d-inline-flex.align-items-center.justify-content-center
+              i.fas.fa-play aria-hidden="true"
+        .song-meta.flex-grow-1.d-flex.flex-column
+          .song-top
+            .song-title.text-dark.fw-bold.mb-2 = song_title
+            .text-secondary.small.mb-1 = album_name
+          - if singers.any?
+            .singer-row
+              i.fas.fa-user-alt aria-hidden="true"
+              .singer-links
+                - singers.each_with_index do |singer, idx|
+                  - name = singer[:name] || singer['name']
+                  - url  = singer[:external_url] || singer['external_url']
+                  - next unless name
+                  - link_url = url && !url.empty? ? url : '#'
+                  a.singer-link href=link_url target="_blank" rel="noopener" = name
 
-      pre.lyrics-text
-        - lyrics.text.to_s.split(/\n/).each do |line|
-          - tokens = line.split(/(\s+)/)  
-          - tokens.each do |tk|
-            - if tk =~ /\s+/
-              = tk                         
-            - else
-              - key = tk.downcase.gsub(/[^a-z']/,'')
-              - if normalized_vocab[key]
-                span.lyrics-word data-vocab=key = tk
-              - else
+    .lyrics-section.mt-2.mb-3
+      - if lyrics && lyrics.text
+        - normalized_vocab = {}
+        - if defined?(materials) && materials.respond_to?(:each)
+          - materials.each do |m|
+            - word = m.origin_word || m[:word]
+            - key  = word.to_s.downcase.gsub(/[^a-z']/,'')
+            - normalized_vocab[key] = true unless key.empty?
+
+        pre.lyrics-text
+          - lyrics.text.to_s.split(/\n/).each do |line|
+            - tokens = line.split(/(\s+)/)
+            - tokens.each do |tk|
+              - if tk =~ /\s+/
                 = tk
-          = "\n"
-    - else
-      p.lyrics-empty No lyrics available.
+              - else
+                - key = tk.downcase.gsub(/[^a-z']/,'')
+                - if normalized_vocab[key]
+                  span.lyrics-word data-vocab=key = tk
+                - else
+                  = tk
+            = "\n"
+      - else
+        p.lyrics-empty.text-muted No lyrics available.
 
 
-  / ==== 右邊：學習教材區塊 ====
-  .material-panel
-    h2 Vocabularies
+  // Right: Material Area
+  .material-panel.mt-3
+    h2.text-main.fw-bold.mb-3 Vocabularies
     .materials-scroll.overflow-auto
       - if materials && materials.any?
         - idx = 0
@@ -51,56 +71,24 @@
             - first_meaning = material.meanings.first
             - main_pos = first_meaning[:pos] || first_meaning['pos']
 
-          .card.mb-4.shadow-sm.material-card(
+          - vocab_id = material.id || material[:id] || material['id']
+          - starred_flag = vocab_id && starred_ids.include?(vocab_id.to_i)
+          .card.mb-4.shadow-sm.material-card.material-card-fixed(
             data-origin-word=material.origin_word.to_s.downcase
             data-lemma=material.word.to_s.downcase
             data-index=idx
             class=(idx == 0 ? '' : 'd-none')
           )
-            .card-body
-              .material-header
-                .material-header-main
-                  .word-block
-                    h3.word.mb-0.me-2 = material.word
-                    - if main_pos
-                      span.level.badge.bg-light.text-secondary.text-uppercase = main_pos
-                .material-header-right
-                  - if material.level
-                    span.badge class=material.difficulty_class = material.difficulty_label
-                    i.fas.fa-star.fav-star aria-hidden="true"
-
-              - if material.head_zh
-                p.head-zh.mb-3.text-muted = material.head_zh
-
-              - if material.meanings && material.meanings.any?
-                - material.meanings.each do |meaning|
-                  - def_en   = meaning[:definition_en]   || meaning['definition_en']
-                  - def_zh   = meaning[:definition_zh]   || meaning['definition_zh']
-                  - examples = meaning[:examples]        || meaning['examples'] || []
-
-                  .meaning-block.border-top.pt-3.mt-2
-                    - if def_en
-                      p.definition-en.mb-0.fw-semibold = def_en
-                    - if def_zh
-                      p.definition-zh.mb-1.text-muted = def_zh
-
-                    - if examples.any?
-                      .examples
-                        - examples.each do |ex|
-                          - sen_en = ex[:sentence_en]    || ex['sentence_en']
-                          - exp_zh = ex[:explanation_zh] || ex['explanation_zh']
-
-                          .example-item.mb-2
-                            - if sen_en
-                              p.sentence-en.mb-0 = sen_en
-                            - if exp_zh
-                              p.explanation-zh.mb-0.text-muted.small = exp_zh
+            - card_locals = { card_word: material.word, head_zh: material.head_zh, level_text: material.difficulty_label, badge_class: material.difficulty_class, meanings: material.meanings, related_forms: material.respond_to?(:related_forms) ? material.related_forms : nil, default_pos: main_pos, vocab_id: vocab_id, starred: starred_flag }
+            == render 'partials/_vocab_card_body', locals: card_locals
 
           - idx += 1
 
-        .material-pager.d-flex.justify-content-between.align-items-center.mt-2
-          button#materialPrev.btn.btn-sm.btn-outline-secondary type="button" 上一個
-          span#materialCounter.small.text-muted
-          button#materialNext.btn.btn-sm.btn-outline-secondary type="button" 下一個
       - else
         p.text-muted 沒有拿到任何 vocab 資料（materials 目前是空的）
+
+    - if materials && materials.any?
+      .material-pager.d-flex.justify-content-between.align-items-center.mt-3.mb-3.me-2
+        button#materialPrev.btn.btn-sm.btn-outline-secondary type="button" Previos
+        span#materialCounter.small.text-muted
+        button#materialNext.btn.btn-sm.btn-outline-secondary type="button" Next

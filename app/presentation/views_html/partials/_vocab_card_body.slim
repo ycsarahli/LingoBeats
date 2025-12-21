@@ -1,0 +1,47 @@
+- card_word = defined?(card_word) ? card_word : 'Vocab'
+- word_class = defined?(word_class) ? word_class : 'text-main'
+- head_zh = defined?(head_zh) ? head_zh : nil
+- level_text = defined?(level_text) ? level_text : nil
+- badge_class = defined?(badge_class) ? badge_class : 'bg-secondary'
+- meanings = defined?(meanings) ? Array(meanings) : []
+- related_forms = defined?(related_forms) ? Array(related_forms) : []
+- default_pos = defined?(default_pos) ? default_pos : nil
+- scroll_class = defined?(scroll_class) ? scroll_class : nil
+- vocab_id = defined?(vocab_id) ? vocab_id : nil
+- starred = defined?(starred) ? starred : nil
+- dataset_key = defined?(dataset_key) ? dataset_key : nil
+
+.card-body.material-card-body
+  .material-header
+    .material-header-main
+      .word-block
+        - word_classes = ['word', 'mb-0']
+        - word_classes << word_class if word_class
+        h3.text-main.fw-bold class=word_classes.join(' ') = card_word
+    .material-header-right
+      - if level_text && !level_text.empty?
+        span.badge class=badge_class = level_text
+      - star_classes = ['fas', 'fa-star', 'fav-star']
+      - star_classes << 'is-fav' if starred
+      - aria_pressed = starred ? 'true' : 'false'
+      - star_attrs = {}
+      - star_attrs['class'] = star_classes.join(' ')
+      - star_attrs['role'] = 'button'
+      - star_attrs['tabindex'] = '0'
+      - star_attrs['aria-label'] = '切換收藏'
+      - star_attrs['aria-pressed'] = aria_pressed
+      - star_attrs['aria-hidden'] = 'true'
+      - star_attrs['data-vocab-id'] = vocab_id if vocab_id
+      - star_attrs['data-history-word'] = dataset_key if dataset_key
+      i *star_attrs
+
+  - if head_zh
+    p.head-zh.mb-0.text-muted = head_zh
+
+  - sections_locals = {meanings: meanings, related_forms: related_forms, default_pos: default_pos}
+
+  - if scroll_class
+    div class=scroll_class
+      == render 'partials/_vocab_card_sections', locals: sections_locals
+  - else
+    == render 'partials/_vocab_card_sections', locals: sections_locals

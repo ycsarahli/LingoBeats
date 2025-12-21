@@ -326,7 +326,7 @@ body {
    ========================================================= */
 .overflow-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
 }
 
 .overflow-auto::-webkit-scrollbar,
@@ -336,7 +336,7 @@ body {
 
 .overflow-auto::-webkit-scrollbar-thumb,
 #modalLyrics::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 10px;
 }
 
@@ -424,6 +424,10 @@ body.modal-open {
 /* Song info */
 .song-meta {
   flex: 1;
+}
+
+.song-meta .singer-row {
+  margin-top: auto;
 }
 
 @media (max-width: 991.98px) {
@@ -613,6 +617,972 @@ body.modal-open {
 }
 
 /* =========================================================
+    History Page
+   ========================================================= */
+.history-page {
+  padding-top: 0;
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-scroll {
+  flex: 1;
+  overflow: hidden;
+}
+
+.history-scroll .history-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-mode-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-vocab-empty {
+  flex-shrink: 0;
+}
+
+.history-vocab-interactive {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-vocab-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+}
+
+.history-vocab-browser {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.history-vocab-detail-panel {
+  background: #fff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 20px 55px rgba(15, 36, 64, 0.12);
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.history-vocab-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* @media (max-width: 576px) {
+  .history-page {
+    height: calc(100vh - 80px);
+  }
+
+  .history-scroll {
+    padding-bottom: 90px;
+  }
+} */
+
+#notificationToastStack {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 1100;
+  width: min(360px, calc(100% - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#notificationToastStack .notification-toast-container {
+  width: 100%;
+  transform: translateX(-16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+#notificationToastStack .notification-toast-container.toast-visible {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#notificationToastStack .notification-toast-container.toast-hiding {
+  transform: translateX(-16px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.notification-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(15, 36, 64, 0.18);
+  border: 1px solid rgba(17, 28, 47, 0.08);
+  background: #f5f6fa;
+  color: #111c2f;
+}
+
+.notification-toast.notification-success {
+  background: #f5f6fa;
+  border-color: rgba(17, 28, 47, 0.12);
+}
+
+.notification-toast.notification-error {
+  background: #ffecee;
+  border-color: #ffb6c1;
+  color: #7b1e28;
+}
+
+.notification-toast.notification-neutral {
+  background: #f8f9fb;
+}
+
+.notification-message {
+  flex: 1;
+  font-weight: 600;
+}
+
+.notification-toast .btn-close {
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.notification-toast .btn-close:hover,
+.notification-toast .btn-close:focus {
+  opacity: 1;
+}
+
+.history-hero p.text-uppercase {
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+}
+
+.collection-hero {
+  background: transparent;
+  border-radius: 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-shadow: none;
+  border-bottom: none;
+}
+
+.mode-switch {
+  display: inline-flex;
+  background: #edf1f7;
+  border-radius: 999px;
+  padding: 5px;
+  gap: 6px;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 600;
+  color: #6b7280;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.mode-btn.active {
+  background: #fff;
+  color: #111c2f;
+  box-shadow: 0 6px 16px rgba(15, 36, 64, 0.15);
+}
+
+.history-vocab-view .btn {
+  min-width: 120px;
+}
+
+/* .history-vocab-layout {
+  background: #fff;
+  border-radius: 24px;
+  padding: 8px;
+} */
+
+.vocab-collection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-vocab-item {
+  --accent-color: rgba(29, 185, 84, 0.35);
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 22px;
+  padding: 20px 24px;
+  border-left: 6px solid var(--accent-color);
+  text-align: left;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.history-vocab-item.difficulty-easy {
+  --accent-color: #6ec35a;
+}
+
+.history-vocab-item.difficulty-medium {
+  --accent-color: #e27508;
+}
+
+.history-vocab-item.difficulty-hard {
+  --accent-color: #b82b2b;
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: #edf1f7;
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+  margin-left: auto;
+  height: 48px;
+}
+
+.view-toggle-btn {
+  border: none;
+  background: transparent;
+  color: #7a8394;
+  width: 44px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.view-toggle-btn i {
+  font-size: 1rem;
+}
+
+.view-toggle-btn.active {
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(15, 36, 64, 0.15);
+  color: var(--lingobeats-green);
+}
+
+.history-vocab-item:hover,
+.history-vocab-item.active {
+  border-color: var(--accent-color);
+  box-shadow: 0 12px 24px rgba(15, 36, 64, 0.1);
+}
+
+.difficulty-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.difficulty-tab {
+  border: none;
+  border-radius: 999px;
+  background: #edf1f7;
+  color: #4b5264;
+  padding: 8px 16px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.difficulty-tab.active {
+  background: #fff;
+  color: #111c2f;
+  box-shadow: 0 8px 20px rgba(15, 36, 64, 0.12);
+}
+
+.difficulty-tab .tab-count {
+  font-size: 0.85rem;
+  color: #8891a4;
+}
+
+.vocab-level-chip {
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  margin-bottom: 6px;
+}
+
+.pos-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #ebeff6;
+  color: #4a5669;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.history-detail-back {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #4c576a;
+}
+
+.history-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+.history-detail-scroll {
+  flex: 1;
+  overflow-y: auto;
+  max-height: none;
+  padding-right: 4px;
+}
+
+.history-detail-zh {
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.history-detail-zhsmall {
+  color: #4b5563;
+}
+
+.history-detail-phonetic {
+  font-style: italic;
+}
+
+.history-detail-meaning .pos-pill {
+  margin-right: 8px;
+}
+
+.history-detail-examples p {
+  color: #4b5563;
+}
+
+.history-vocab-inner.detail-open .history-vocab-browser {
+  display: none;
+}
+
+.history-vocab-inner.detail-open .history-vocab-detail-panel {
+  display: flex;
+}
+
+@media (min-width: 992px) {
+  .history-vocab-inner {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 32px;
+    flex: 1;
+  }
+
+  .history-vocab-browser {
+    flex: 0 0 45%;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 12px;
+  }
+
+  .history-vocab-detail-panel {
+    display: flex;
+    flex: 1;
+    height: 100%;
+  }
+
+  .history-detail-back {
+    display: none !important;
+  }
+
+}
+
+@media (max-width: 991.98px) {
+  .history-vocab-detail-panel {
+    min-height: 60vh;
+  }
+
+  .history-detail-back {
+    display: inline-flex;
+  }
+}
+
+#historySongs .songs-panel-header {
+  z-index: 4;
+  border-bottom: 1px solid #edf1f7;
+  box-shadow: 0 6px 16px rgba(15, 36, 64, 0.08);
+  border-radius: 0 0 18px 18px;
+  padding-inline: 4px;
+}
+
+.vocab-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.vocab-card-title {
+  width: 100%;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.history-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.history-card-top {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.history-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-meaning-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.history-meaning-line .pos-pill {
+  margin-top: 2px;
+}
+
+.history-meaning-line .vocab-zh-summary {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.vocab-card-title .difficulty-chip {
+  flex-shrink: 0;
+}
+
+.vocab-card-header .history-list-word {
+  font-size: 1.35rem;
+}
+
+.vocab-card-info .history-list-word {
+  display: block;
+}
+
+.vocab-phonetic {
+  font-size: 0.95rem;
+  color: #8c96a8;
+}
+
+.difficulty-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  letter-spacing: 0.05em;
+  background: #edf1f7;
+  color: #1f2933;
+}
+
+.difficulty-chip.bg-success {
+  background: #e6f7ef;
+  color: #0b5b32;
+}
+
+.difficulty-chip.bg-warning {
+  background: #fff5da;
+  color: #7a4c00;
+}
+
+.difficulty-chip.bg-danger {
+  background: #ffe4e8;
+  color: #8c1f2e;
+}
+
+.difficulty-chip.bg-secondary {
+  background: #e4e7eb;
+  color: #3d4554;
+}
+
+.vocab-item-header {
+  font-weight: 600;
+}
+
+.pos-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  margin-right: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #ede3ff;
+  color: #7444d6;
+}
+
+.meaning-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.meaning-text {
+  color: #101a2d;
+}
+
+.meaning-hint {
+  display: block;
+}
+
+.history-list-word {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1d2636;
+}
+
+.history-list-summary {
+  font-size: 0.95rem;
+  color: #5c6d87;
+}
+
+.history-vocab-details .card {
+  border-radius: 20px;
+  border: none;
+}
+
+.history-vocab-detail-card .meaning-block {
+  border-color: #edf1f7;
+}
+
+.history-example-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.history-flashcard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.history-flashcard-panel {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.flashcard-nav-btn.is-hidden,
+[data-flashcard-nav].is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.history-flashcard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.history-flashcard-panel {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.flashcard-nav-btn.is-hidden,
+[data-flashcard-nav].is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.history-flashcard-stage {
+  width: min(960px, calc(100% - 24px));
+  margin: 1rem auto 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: center;
+  gap: 24px;
+}
+
+.history-flashcard-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  touch-action: pan-y;
+  width: 100%;
+  perspective: 1500px;
+  margin: 0 auto;
+  flex: none;
+}
+
+/* 響應式卡片尺寸 - 根據螢幕比例 */
+@media (min-aspect-ratio: 1/1) {
+  /* 橫卡（寬 >= 高）*/
+  .history-flashcard-wrapper {
+    max-width: 700px;
+  }
+  
+  .history-flashcard {
+    height: 450px;
+  }
+  
+  .flashcard-inner {
+    min-height: 450px;
+  }
+  
+  .flashcard-word {
+    font-size: 3rem;
+  }
+}
+
+@media (max-aspect-ratio: 1/1) {
+  /* 直卡（高 > 寬）*/
+  .history-flashcard-wrapper {
+    max-width: 500px;
+  }
+  
+  .history-flashcard {
+    height: 600px;
+  }
+  
+  .flashcard-inner {
+    min-height: 600px;
+  }
+  
+  .flashcard-word {
+    font-size: 2.5rem;
+  }
+}
+
+/* 小螢幕優化 */
+@media (max-width: 768px) {
+  .history-flashcard-stage {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .flashcard-nav-btn {
+    margin: 0 auto;
+  }
+  
+  /* 橫向小螢幕 */
+  @media (min-aspect-ratio: 1/1) {
+    .history-flashcard-wrapper {
+      max-width: 90vw;
+    }
+    
+    .history-flashcard {
+      height: 60vh;
+    }
+    
+    .flashcard-inner {
+      min-height: 60vh;
+    }
+  }
+  
+  /* 直向小螢幕 */
+  @media (max-aspect-ratio: 1/1) {
+    .history-flashcard-wrapper {
+      max-width: 90vw;
+    }
+    
+    .history-flashcard {
+      height: 70vh;
+    }
+    
+    .flashcard-inner {
+      min-height: 70vh;
+    }
+  }
+  
+  .flashcard-word {
+    font-size: 2rem;
+  }
+  
+  .flashcard-face {
+    padding: 24px 20px 32px;
+  }
+}
+
+/* 極小螢幕 */
+@media (max-width: 480px) {
+  .flashcard-word {
+    font-size: 1.75rem;
+  }
+  
+  .flashcard-face {
+    padding: 20px 16px 28px;
+  }
+}
+
+.history-flashcard {
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+}
+
+.flashcard-nav-btn {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 20px 40px rgba(17, 32, 47, 0.18);
+  background: #fff;
+  color: #3e4654;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.flashcard-nav-btn:hover:not(:disabled):not(.disabled) {
+  background: #f8f9fa;
+  transform: scale(1.1);
+}
+
+.flashcard-nav-btn i {
+  pointer-events: none;
+}
+
+.flashcard-nav-btn.disabled,
+.flashcard-nav-btn:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.history-flashcard.d-none {
+  display: none !important;
+}
+
+.history-flashcard.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.history-flashcard.dragging .flashcard-inner {
+  transition: none;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  border-radius: 40px;
+  transform-style: preserve-3d;
+  transition: transform 0.7s;
+  background: transparent;
+}
+
+.history-flashcard.is-flipped .flashcard-inner {
+  transform: rotateY(180deg);
+}
+
+.flashcard-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  padding: 36px 32px 48px;
+  backface-visibility: hidden;
+  background: linear-gradient(180deg, #f9fbff 0%, #eef3ff 100%);
+  border: 1px solid rgba(15, 36, 64, 0.08);
+  box-shadow: 0 45px 70px rgba(15, 36, 64, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.flashcard-face.flashcard-back {
+  transform: rotateY(180deg);
+  overflow: hidden;
+  background: #ffffff;
+  padding: 0;
+}
+
+.flashcard-front-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 12px;
+}
+
+.flashcard-front-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  padding: 0 16px;
+}
+
+.flashcard-pos-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.flashcard-pos-list .pos-pill {
+  background: #ebeff6;
+  color: #4a5669;
+  padding: 0.35rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.flashcard-level,
+.history-flashcard-stage .difficulty-chip {
+  min-width: 0;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+}
+
+.flashcard-word {
+  font-weight: 700;
+  color: #0b1721;
+  word-break: break-word;
+}
+
+.flashcard-hint {
+  margin-top: auto;
+  font-size: 0.95rem;
+  color: #7a879c;
+  text-align: center;
+}
+
+.flashcard-word-row {
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.flashcard-back-body {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.flashcard-back-body .material-card {
+  height: 100%;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.flashcard-back-body .material-card-header {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  flex-shrink: 0;
+}
+
+.flashcard-back-body .material-card-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.flashcard-detail-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-top: 1rem;
+}
+
+/* 星號按鈕 */
+.fav-star {
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #ffc107;
+}
+
+.fav-star:hover {
+  transform: scale(1.2);
+}
+
+.fav-star.is-fav {
+  color: #ffc107;
+}
+
+.history-vocab-empty,
+.history-empty-state {
+  background: #fff;
+  border-radius: 24px;
+  padding: 48px 32px;
+  box-shadow: 0 18px 45px rgba(15, 36, 64, 0.08);
+}
+
+.history-vocab-empty i,
+.history-empty-state i {
+  color: #cbd5f5;
+}
+
+/* =========================================================
     Tutorial
    ========================================================= */
 body.tutorial-page {
@@ -783,9 +1753,8 @@ body.tutorial-page {
 }
 
 .placeholder-image {
-  height: 250px;
-  background-color: #e9ecef;
-  border: 2px dashed #dee2e6;
+  height: 100%;
+  border: 1px solid #e9ebed;
 }
 
 .review-placeholder {
@@ -795,20 +1764,117 @@ body.tutorial-page {
 /* ===============================
    Material page layout
    =============================== */
-
-/* 主 layout：左右分欄 */
 .main-material-layout {
-  display: flex;
   gap: 2rem;
-  height: calc(100vh - 50px - 4rem);  /* 50px navbar + 上下 padding 2rem+2rem */
-  min-height: 0;                       /* 關鍵：讓子元素高度可以被壓縮 */
+  height: calc(100vh - 50px - 4rem);
 }
 
-/* 左欄：歌曲資訊 */
+/* left: song info */
 .song-panel {
   flex: 0 0 50%;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.song-hero {
+  border-radius: 24px;
+  border: none;
+}
+
+.song-hero-inner {
+  align-items: stretch;
+}
+
+.album-cd-wrapper {
+  width: 120px;
+  height: 120px;
+  flex: 0 0 120px;
+  position: relative;
+}
+
+.album-cd {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 4px solid #e7ecfb;
+  position: relative;
+  animation: spin-cd 30s linear infinite;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.12), 0 12px 20px rgba(12, 32, 64, 0.15);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+}
+
+.album-cd-wrapper:hover .album-cd {
+  animation-play-state: paused;
+}
+
+.album-cd-hole {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fafafa 0%, #d6d6d6 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.18);
+}
+
+.album-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8,15,30,0.6);
+  color: #fff;
+  text-decoration: none;
+  gap: 0.5rem;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.album-cd-wrapper:hover .album-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.singer-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.singer-row.singer-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.singer-link:hover {
+  color: #0b6f3b;
+}
+
+.song-album-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.song-album-link:hover {
+  color: var(--lingobeats-green);
+  border-color: var(--lingobeats-green);
+}
+
+@keyframes spin-cd {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .card.song-card {
@@ -826,37 +1892,59 @@ body.tutorial-page {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
-/* 右欄：教材區 */
+/* left: material */
 .material-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;   /* 關鍵：配合 flex，讓下面的 .materials-scroll 能變成「有界高度」 */
+  min-height: 0;
 }
 
-/* 標題固定 */
 .material-panel h2 {
   flex-shrink: 0;
-  margin: 0 !important;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  margin: 0 0 1rem 0 !important;
+  padding-bottom: 0;
+  border: none;
 }
 
 /* 卡片容器：這裡捲動 */
 .materials-scroll {
-  height: 600px;
-  flex: 1;              /* 吃掉剩下全部高度 */
-  min-height: 0;        /* 關鍵：不要撐破父層 */
-  overflow-y: auto;     /* 只能這裡上下捲動 */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0.5rem;
-  /* border: 2px solid red; */
 }
 
 /* 卡片本身 */
 .material-card {
-  flex-shrink: 0;  /* 加這行：防止卡片被壓縮 */
+  flex-shrink: 0;
+}
+
+.material-card-fixed {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.material-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.meaning-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.head-zh {
+  font-size: 1.05rem;
+  font-weight: 500;
 }
 
 /* 把單字卡右上角的等級顏色改成主視覺綠 */
@@ -900,8 +1988,8 @@ body.tutorial-page {
   gap: 0.5rem;
 }
 
-/* 收藏星星 */
-.material-card .fav-star {
+/* 收藏星星（列表/詳細/教材共用） */
+.fav-star {
   cursor: pointer;
   font-size: 1.4rem;
   color: #ccc;            /* 灰色預設 */
@@ -909,11 +1997,9 @@ body.tutorial-page {
 }
 
 /* 被收藏時（黃色） */
-.material-card .fav-star.is-fav {
+.fav-star.is-fav {
   color: #f5c518;         /* 想換成主視覺黃可以自己調 */
 }
-
-
 
 /* 單字卡 header：左邊 word + 詞性，右邊 level(A/B/C...) */
 .material-header {
@@ -945,9 +2031,14 @@ body.tutorial-page {
   gap: 0.35rem;
 }
 
+.example-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
 .material-pager {
-  padding-top: 0.25rem;
-  border-top: 1px solid #eee;
+  margin-top: 1rem;
+  flex-shrink: 0;
 }
 
 #materialCounter {
@@ -957,7 +2048,7 @@ body.tutorial-page {
 
 /* 左欄：歌曲資訊 + 歌詞 */
 .song-panel {
-  flex: 0 0 45%;      /* 如果想變 1/2 可以調成 50% */
+  flex: 0 0 40%;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -972,9 +2063,9 @@ body.tutorial-page {
 }
 
 .song-header .album-cover {
-  width: 120px;
-  height: 120px;
-  flex: 0 0 120px;
+  width: 100px;
+  height: 100px;
+  flex: 0 0 100px;
   background: #f5f5f5;
   border-radius: 8px;
   overflow: hidden;
@@ -986,9 +2077,8 @@ body.tutorial-page {
   object-fit: cover;
 }
 
-.song-meta .song-title {
-  font-size: 1.4rem;
-  margin-bottom: 0.25rem;
+.song-title {
+  font-size: 1.2rem;
 }
 
 /* 歌詞區：這裡捲動 */
@@ -997,18 +2087,12 @@ body.tutorial-page {
   min-height: 0;
   overflow-y: auto;
   padding-right: 0.5rem;
+  font-family: 'Space Mono', monospace;
 }
 
 .lyrics-text {
   white-space: pre-wrap;
-  font-family: 'Space Mono', monospace;
   font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.lyrics-text {
-  white-space: pre-wrap;   /* 保留換行又可以自動換行 */
-  font-family: inherit;
   line-height: 1.6;
 }
 
@@ -1034,4 +2118,3 @@ body.tutorial-page {
   background-color: rgba(29, 185, 84, 0.22);
   box-shadow: 0 0 0 1px #1db954;
 }
-

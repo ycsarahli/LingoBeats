@@ -1,3 +1,278 @@
-body.d-flex.flex-column.align-items-center.justify-content-center.min-vh-100.bg-light.text-center
-    img src="/construction.png" alt="Coming Soon" class="mb-3" style="max-width: 400px; height: auto;"
-    h5.text-muted.fw-normal Under construction...Coming Soon!
+ruby:
+  fetch_value = lambda do |entity, key|
+    if entity.respond_to?(key)
+      entity.public_send(key)
+    elsif entity.respond_to?(:[]) && !entity.is_a?(String)
+      entity[key] || entity[key.to_s] || entity[key.to_sym]
+    end
+  end
+
+  pos_abbrev_map = {
+    'adjective' => 'adj.',
+    'adverb' => 'adv.',
+    'noun' => 'n.',
+    'verb' => 'v.',
+    'pronoun' => 'pron.',
+    'preposition' => 'prep.',
+    'conjunction' => 'conj.'
+  }
+
+  difficulty_key_for = lambda do |value|
+    text = value.to_s.strip
+    return nil if text.empty?
+    lower = text.downcase
+
+    return 'easy' if lower.start_with?('easy')
+    return 'medium' if lower.start_with?('medium') || lower.include?('normal')
+    return 'hard' if lower.start_with?('hard')
+
+    first = lower[0]
+    case first
+    when 'a' then 'easy'
+    when 'b' then 'medium'
+    when 'c' then 'hard'
+    else
+      nil
+    end
+  end
+
+  saved_vocabularies =
+    if defined?(saved_vocabularies)
+      Array(saved_vocabularies)
+    elsif defined?(@saved_vocabularies)
+      Array(@saved_vocabularies)
+    else
+      []
+    end
+
+  learned_songs =
+    if defined?(learned_songs)
+      Array(learned_songs)
+    elsif defined?(@learned_songs)
+      Array(@learned_songs)
+    else
+      []
+    end
+
+  # difficulty count (for tabs)
+  difficulty_counts = { 'easy' => 0, 'medium' => 0, 'hard' => 0 }
+  saved_vocabularies.each do |vocab|
+    label =
+      if vocab.respond_to?(:difficulty_label)
+        vocab.difficulty_label
+      else
+        fetch_value.call(vocab, :difficulty_label) || fetch_value.call(vocab, :level_text) || fetch_value.call(vocab, :level) || 'medium'
+      end
+
+    key = difficulty_key_for.call(label) || 'medium'
+    difficulty_counts[key] += 1
+  end
+
+.history-page
+  .collection-hero.sticky-top.w-100.mt-5.mb-2
+    .container
+      h2.fw-bold.text-dark.mb-2 Learning History
+
+      - if defined?(history_error) && history_error
+        .alert.alert-warning.mb-0.mt-3 = history_error
+
+      .d-flex.flex-column.flex-md-row.align-items-md-stretch.justify-content-md-between.gap-3.mt-3.w-100
+        .difficulty-tabs.d-flex.flex-wrap.gap-2.mb-0
+          - { 'all' => 'All', 'easy' => 'Easy', 'medium' => 'Medium', 'hard' => 'Hard' }.each do |filter_key, label|
+            - count = (filter_key == 'all') ? saved_vocabularies.length : difficulty_counts[filter_key]
+            button.difficulty-tab class=(filter_key == 'all' ? 'active' : nil) data-filter=filter_key type="button"
+              span.tab-label = label
+              span.tab-count = count
+
+        .view-toggle.d-inline-flex.align-items-center.gap-2.ms-md-auto role="group"
+          button.view-toggle-btn.vocab-view-btn.active type="button" data-view="list"
+            i.fas.fa-table-cells.me-0 aria-hidden="true"
+            span.visually-hidden 列表模式
+          button.view-toggle-btn.vocab-view-btn type="button" data-view="flashcards"
+            i.fas.fa-layer-group.me-0 aria-hidden="true"
+            span.visually-hidden 卡片模式
+
+  .history-scroll
+    .container.history-container.py-3
+      .history-mode-panel#historyVocabulary
+        .history-vocab-empty class=(saved_vocabularies.any? ? 'd-none' : nil)
+          i.fas.fa-box-open.fa-2x.text-muted.mb-3 aria-hidden="true"
+          h4.text-secondary.mb-1 目前還沒有收藏單字
+          p.text-muted.mb-0 到課程中點擊星號，就能把單字加入收藏清單。
+
+        .history-vocab-interactive class=(saved_vocabularies.any? ? nil : 'd-none')
+          .history-vocab-inner
+            .history-vocab-browser
+              .history-vocab-layout
+                .vocab-collection-list
+                  - saved_vocabularies.each_with_index do |vocab, idx|
+                    - vocab_obj = vocab.is_a?(Views::Vocab) ? vocab : Views::Vocab.new(vocab.is_a?(Hash) ? OpenStruct.new(vocab) : vocab)
+
+                    - word = vocab_obj.word || vocab_obj.origin_word || fetch_value.call(vocab, :word) || fetch_value.call(vocab, :origin_word) || 'Vocab'
+                    - zh_summary = vocab_obj.head_zh || fetch_value.call(vocab, :head_zh) || fetch_value.call(vocab, :summary)
+
+                    - meanings = fetch_value.call(vocab, :meanings)
+                    - meanings = meanings.respond_to?(:to_a) ? meanings.to_a : Array(meanings)
+
+                    - first_meaning = meanings.first || {}
+                    - pos_label_raw = fetch_value.call(first_meaning, :pos) || first_meaning[:pos] || first_meaning['pos']
+                    - default_pos = pos_label_raw
+                    - pos_abbrev = pos_abbrev_map[pos_label_raw.to_s.downcase] || pos_label_raw
+                    ruby:
+                      pos_list = meanings.map do |meaning|
+                        raw = fetch_value.call(meaning, :pos) || meaning[:pos] || meaning['pos']
+                        raw ? (pos_abbrev_map[raw.to_s.downcase] || raw) : nil
+                      end.compact.uniq
+                    - pos_list = [pos_abbrev].compact if pos_list.empty?
+
+                    - level_text = vocab_obj.difficulty_label || fetch_value.call(vocab, :difficulty_label) || fetch_value.call(vocab, :level_text) || fetch_value.call(vocab, :level) || 'medium'
+                    - badge_class = vocab_obj.difficulty_class || 'bg-secondary'
+                    - level_key = difficulty_key_for.call(level_text) || 'medium'
+
+                    - dataset_key = word.to_s.downcase
+
+                    - related_forms = fetch_value.call(vocab, :related_forms)
+                    - related_forms = related_forms.respond_to?(:to_a) ? related_forms.to_a : Array(related_forms)
+                    - vocab_id = (vocab_obj.respond_to?(:id) && vocab_obj.id) ? vocab_obj.id : fetch_value.call(vocab, :id)
+
+                    - starred_flag = true
+                    - item_class = "difficulty-#{level_key}"
+
+                    .history-vocab-item class=item_class data-word=dataset_key role="button" tabindex="0" data-difficulty=level_key
+                      .vocab-card
+                        .history-card-top.d-flex.align-items-start.justify-content-between.gap-3
+                          .history-card-text.flex-grow-1
+                            .vocab-card-title.d-flex.align-items-center.flex-wrap.gap-2.mb-1
+                              span.history-list-word = word
+                              - pos_list.each do |abbr|
+                                span.pos-pill = abbr
+
+                            - if zh_summary
+                              p.vocab-zh-summary.mb-0 = zh_summary
+
+                          .history-meta-bar.d-flex.align-items-center.gap-2
+                            - if level_text && !level_text.to_s.empty?
+                              span.badge class=badge_class = level_text
+
+                            - star_classes = ['fas', 'fa-star', 'fav-star', 'is-fav']
+                            i class=star_classes.join(' ') role="button" tabindex="0" aria-label="切換收藏" aria-pressed="true" aria-hidden="true" data-vocab-id=vocab_id data-history-word=dataset_key
+
+                      template.vocab-detail-template
+                        .history-detail-card
+                          .material-card.material-card-fixed data-word=dataset_key
+                            - card_locals = {}
+                            - card_locals[:card_word] = word
+                            - card_locals[:head_zh] = zh_summary
+                            - card_locals[:level_text] = level_text
+                            - card_locals[:badge_class] = badge_class
+                            - card_locals[:meanings] = meanings
+                            - card_locals[:related_forms] = related_forms
+                            - card_locals[:default_pos] = default_pos
+                            - card_locals[:vocab_id] = vocab_id
+                            - card_locals[:starred] = starred_flag
+                            - card_locals[:dataset_key] = dataset_key
+                            - card_locals[:scroll_class] = 'history-detail-scroll'
+                            == render('partials/_vocab_card_body', locals: card_locals)
+
+            .history-vocab-detail-panel
+              button.history-detail-back.btn.btn-link.p-0.mb-3 type="button"
+                i.fas.fa-chevron-left.me-1 aria-hidden="true"
+                | 返回列表
+              .history-vocab-detail-body data-placeholder="點選左側單字以查看詳細內容。" data-empty="該分類目前沒有單字。"
+                - if saved_vocabularies.any?
+                  p.text-muted.mb-0 點選左側單字以查看詳細內容。
+                - else
+                  p.text-muted.mb-0 目前沒有收藏單字。
+
+            .history-flashcard-panel.d-none
+              .d-flex.align-items-center.justify-content-end.mb-3
+                span.fw-semibold.text-uppercase.small#historyFlashcardCounter 0 / 0
+
+              .history-flashcard-stage
+                button.flashcard-nav-btn.btn.btn-light.rounded-circle aria-label="上一張" type="button" data-flashcard-nav="prev"
+                  i.fas.fa-chevron-left aria-hidden="true"
+
+                .history-flashcard-wrapper
+                  - saved_vocabularies.each_with_index do |vocab, idx|
+                    - vocab_obj = vocab.is_a?(Views::Vocab) ? vocab : Views::Vocab.new(vocab.is_a?(Hash) ? OpenStruct.new(vocab) : vocab)
+
+                    - word = vocab_obj.word || vocab_obj.origin_word || fetch_value.call(vocab, :word) || fetch_value.call(vocab, :origin_word) || 'Vocab'
+                    - dataset_key = word.to_s.downcase
+                    - level_text = vocab_obj.difficulty_label || fetch_value.call(vocab, :difficulty_label) || fetch_value.call(vocab, :level_text) || fetch_value.call(vocab, :level) || 'medium'
+                    - badge_class = vocab_obj.difficulty_class || 'bg-secondary'
+
+                    - head_zh = vocab_obj.head_zh || fetch_value.call(vocab, :head_zh)
+
+                    - meanings = fetch_value.call(vocab, :meanings)
+                    - meanings = meanings.respond_to?(:to_a) ? meanings.to_a : Array(meanings)
+
+                    - first_meaning = meanings.first || {}
+                    - pos_label_raw = fetch_value.call(first_meaning, :pos) || first_meaning[:pos] || first_meaning['pos']
+                    - pos_abbrev = pos_abbrev_map[pos_label_raw.to_s.downcase] || pos_label_raw
+                    ruby:
+                      pos_list = meanings.map do |meaning|
+                        raw = fetch_value.call(meaning, :pos) || meaning[:pos] || meaning['pos']
+                        raw ? (pos_abbrev_map[raw.to_s.downcase] || raw) : nil
+                      end.compact.uniq
+                    - pos_list = [pos_abbrev].compact if pos_list.empty?
+
+                    - related_forms = fetch_value.call(vocab, :related_forms)
+                    - related_forms = related_forms.respond_to?(:to_a) ? related_forms.to_a : Array(related_forms)
+                    - vocab_id = (vocab_obj.respond_to?(:id) && vocab_obj.id) ? vocab_obj.id : fetch_value.call(vocab, :id)
+                    - starred_flag = true
+
+                    .history-flashcard tabindex="0" data-word=dataset_key class=(idx.zero? ? 'active' : 'd-none')
+                      .flashcard-inner
+                        .flashcard-face.flashcard-front
+                          .flashcard-front-meta.d-flex.align-items-center.justify-content-end.gap-2.w-100
+                            - if level_text && !level_text.to_s.empty?
+                              span.badge class=badge_class = level_text
+
+                            - star_classes = ['fas', 'fa-star', 'fav-star', 'is-fav']
+                            i class=star_classes.join(' ') role="button" tabindex="0" aria-label="切換收藏" aria-pressed="true" aria-hidden="true" data-vocab-id=vocab_id data-history-word=dataset_key
+
+                          .flashcard-front-main
+                            h3.flashcard-word.mb-0.text-center = word
+                            - if pos_list.any?
+                              .flashcard-pos-list.d-flex.flex-wrap.justify-content-center.gap-2.mt-3
+                                - pos_list.each do |abbr|
+                                  span.pos-pill = abbr
+
+                          p.flashcard-hint.small 點擊卡片翻面查看完整資訊
+
+                        .flashcard-face.flashcard-back
+                          ruby:
+                            back_locals = {
+                              card_word: word,
+                              head_zh: head_zh,
+                              level_text: level_text,
+                              badge_class: badge_class,
+                              meanings: meanings,
+                              related_forms: related_forms,
+                              default_pos: pos_label_raw,
+                              vocab_id: vocab_id,
+                              starred: starred_flag,
+                              dataset_key: dataset_key,
+                              scroll_class: 'flashcard-detail-scroll'
+                            }
+                          .flashcard-back-body
+                            == render('partials/_vocab_card_body', locals: back_locals)
+
+                button.flashcard-nav-btn.btn.btn-light.rounded-circle aria-label="下一張" type="button" data-flashcard-nav="next"
+                  i.fas.fa-chevron-right aria-hidden="true"
+
+  / Unstar confirmation modal
+  #historyUnstarModal.modal.fade tabindex="-1" aria-labelledby="historyUnstarModalLabel" aria-hidden="true"
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title#historyUnstarModalLabel 確認要移除這個收藏？
+          button.btn-close type="button" data-bs-dismiss="modal" aria-label="Close"
+        .modal-body
+          p.mb-3 移除後，這個單字就不會再出現在歷史收藏中。
+          .form-check
+            input.form-check-input#historyUnstarSkip type="checkbox"
+            label.form-check-label for="historyUnstarSkip" 下次不再詢問，直接移除
+        .modal-footer
+          button.btn.btn-outline-secondary type="button" data-bs-dismiss="modal" 取消
+          button.btn.btn-danger type="button" data-confirm-unstar="true" 確認移除

@@ -1,0 +1,6 @@
+- return unless defined?(notification) && notification
+
+.notification-toast-container
+  .notification-toast class="notification-#{notification.css_modifier}" role="alert" aria-live="polite"
+    span.notification-message = notification.message
+    button.btn-close type="button" aria-label="Close" data-dismiss-toast="true"
