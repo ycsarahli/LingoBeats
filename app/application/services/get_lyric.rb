@@ -19,8 +19,15 @@ module LingoBeats
       # step 1. fetch lyric from LingoBeats API
       # :reek:FeatureEnvy
       def retrieve_lyric(input)
+        song_id =
+          if input.is_a?(Hash)
+            input[:song_id] || input['song_id']
+          else
+            input
+          end
+
         result = Gateway::Api.new(App.config)
-                             .get_song_lyric(input)
+                             .get_song_lyric(song_id)
 
         result.success? ? Success(result.payload) : Failure(result.payload)
       rescue StandardError

@@ -2,110 +2,89 @@
 # frozen_string_literal: true
 
 require 'ostruct'
+require 'dry/transaction'
 
 module LingoBeats
   module Service
     class EnsureMaterial
-      include Dry::Monads[:result]
+      include Dry::Transaction
 
-      def call(song_id, session: nil)
-        material_result = ensure_material_record(song_id)
-        return material_result if material_result.failure?
+      step :fetch_material_record
+      step :fetch_lyrics
+      step :fetch_song_info
+      step :fetch_starred_vocab_ids
+      step :reify_response
 
-        payload = material_result.value!
-        extras = gather_song_and_lyric(song_id, payload)
-        starred_vocab_ids = fetch_starred_ids(session)
-
-        Success(
-          OpenStruct.new(
-            materials: normalize_materials(payload),
-            song: normalize_struct(extras[:song] || payload&.song),
-            lyrics: normalize_struct(extras[:lyrics]),
-            starred_vocab_ids: starred_vocab_ids,
-            warnings: extras[:warnings].compact
-          )
-        )
-      rescue StandardError => e
-        Failure("Error ensuring material: #{e.message}")
-      end
+      REIFY_ERROR = 'Error processing learning material -- please try again'
 
       private
 
-      def ensure_material_record(song_id)
-        get_result = GetMaterial.new.call(song_id)
-        return get_result if usable?(get_result)
+      # input: { song_id:, session: }
+      def fetch_material_record(input)
+        get_result = GetMaterial.new.call(song_id: input[:song_id])
+        return Failure(get_result.failure) if get_result.failure?
 
-        add_result = AddMaterial.new.call(song_id)
-        return add_result if add_result.success?
-
-        Failure(add_result.failure)
+        Success(input.merge(material: get_result.value!))
       end
 
-      # 根據你現在 GetMaterial 回來的東西去調整這裡
-      def usable?(result)
-        return false if result.failure?
+      def fetch_lyrics(input)
+        lyric_result = GetLyric.new.call(song_id: input[:song_id])
+        return Failure(lyric_result.failure) if lyric_result.failure?
 
-        material = result.value!
-
-        # 這裡的判斷你可以依你實際 payload 改：
-        # - 是 nil 嗎？
-        # - 還是有 contents 欄位，而且不能為空？
-        return false if material.nil?
-
-        if material.respond_to?(:contents)
-          !material.contents.nil? && !material.contents.empty?
-        else
-          true
-        end
+        Success(input.merge(lyric: lyric_result.value!))
       end
 
-      def gather_song_and_lyric(song_id, payload)
-        warnings = []
-        lyrics = nil
-        song = nil
+      def fetch_song_info(input)
+        song_result = GetSong.new.call(song_id: input[:song_id])
+        return Failure(song_result.failure) if song_result.failure?
 
-        lyric_result = GetLyric.new.call(song_id)
-        if lyric_result.success?
-          lyrics = lyric_result.value!
-        else
-          warnings << lyric_result.failure
-        end
-
-        song_result = GetSong.new.call(song_id:)
-        if song_result.success?
-          song = song_result.value!
-        else
-          warnings << song_result.failure
-        end
-
-        song ||= payload.respond_to?(:song) ? payload.song : nil
-
-        { song:, lyrics:, warnings: warnings.compact }
+        Success(input.merge(song: song_result.value!))
       end
 
-      def fetch_starred_ids(session)
-        return [] unless session
+      def fetch_starred_vocab_ids(input)
+        session = input[:session]
+        return Success(input.merge(starred_vocab_ids: [])) unless session
 
-        Repository::StarredHistories.load_from(session).vocab_ids
-      rescue StandardError => e
-        App.logger.error(e.full_message) if defined?(App)
+        starred_result = ListStarVocabularies.new.call(session)
+        if starred_result.success?
+          vocab_ids = starred_result.value!.vocabularies.map(&:id)
+          return Success(input.merge(starred_vocab_ids: vocab_ids))
+        end
+
+        Success(input.merge(starred_vocab_ids: []))
+      end
+
+      def reify_response(input)
+        material_payload = input[:material]
+
+        Success(
+          OpenStruct.new(
+            materials: extract_materials(material_payload),
+            song: input[:song],
+            lyrics: input[:lyric],
+            starred_vocab_ids: input[:starred_vocab_ids]
+          )
+        )
+      rescue StandardError => error
+        App.logger.error(error.full_message)
+        Failure(REIFY_ERROR)
+      end
+
+      def extract_materials(material_payload)
+        return [] if material_payload.nil?
+
+        if material_payload.respond_to?(:materials)
+          material_payload.materials
+        elsif material_payload.respond_to?(:contents)
+          material_payload.contents
+        elsif material_payload.is_a?(Hash)
+          material_payload[:materials] || material_payload['materials'] ||
+            material_payload[:contents] || material_payload['contents'] || []
+        else
+          []
+        end
+      rescue StandardError
         []
-      end
-
-      def normalize_materials(payload)
-        vocab_array = payload&.contents || []
-        vocab_array.map { |item| normalize_struct(item) }
-      end
-
-      def normalize_struct(item)
-        return nil if item.nil?
-        return item if item.is_a?(OpenStruct)
-
-        if item.respond_to?(:to_h)
-          OpenStruct.new(item.to_h)
-        else
-          item
-        end
       end
     end
   end

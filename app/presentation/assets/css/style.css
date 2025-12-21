@@ -1812,8 +1812,8 @@ body.tutorial-page {
 
 .album-cd-hole {
   position: absolute;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: radial-gradient(circle, #fafafa 0%, #d6d6d6 70%);
   top: 50%;
@@ -1906,6 +1906,146 @@ body.tutorial-page {
   margin: 0 0 1rem 0 !important;
   padding-bottom: 0;
   border: none;
+}
+
+.material-progress-page {
+  min-height: 70vh;
+  width: 100%;
+}
+
+.wave-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #1c2750;
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.wave-stage--active {
+  opacity: 1;
+}
+
+.wave-caption {
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  color: #1a2454;
+}
+
+.wave-circle {
+  position: relative;
+  width: min(70vw, 260px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, #ffffff 0%, #f6f7fb 55%, #e8ebf4 100%);
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.08),
+    0 16px 35px rgba(27, 58, 132, 0.16);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  --fill: 50%;
+}
+
+.wave-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wave {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  border-radius: 45%;
+  background: linear-gradient(180deg, rgba(140, 186, 247, 0.6), rgba(86, 152, 228, 0.7) 70%, rgba(51, 124, 212, 0.75));
+}
+
+.wave::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,60 Q100,10 200,60 T400,60 Q500,10 600,60 T800,60 Q900,10 1000,60 T1200,60 L1200,120 L0,120 Z' fill='rgba(140,186,247,0.5)'/%3E%3C/svg%3E") repeat-x;
+  background-size: 600px 60px;
+  background-position: 0 0;
+  animation: waveMask 12s linear infinite;
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 30px, transparent 60px);
+  mask-image: linear-gradient(to bottom, black 0%, black 30px, transparent 60px);
+}
+
+.wave-base {
+  opacity: 0.7;
+  filter: drop-shadow(0 6px 12px rgba(22, 76, 148, 0.18));
+  animation: waveFlow 5s ease-in-out infinite;
+  top: calc(100% - var(--fill, 50%));
+}
+
+.wave-base::before {
+  animation: waveMask 4s linear infinite;
+}
+
+.wave-crest {
+  opacity: 0.4;
+  filter: drop-shadow(0 10px 15px rgba(25, 86, 172, 0.18));
+  animation: waveFlow 4s ease-in-out infinite reverse;
+  top: calc(105% - var(--fill, 50%));
+}
+
+.wave-crest::before {
+  animation: waveMask 3s linear infinite reverse;
+}
+
+@keyframes waveFlow {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(-35px, -15px, 0) rotate(3deg);
+  }
+  50% {
+    transform: translate3d(-50px, 20px, 0) rotate(-2deg);
+  }
+  75% {
+    transform: translate3d(-30px, -10px, 0) rotate(2.5deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+@keyframes waveMask {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 600px 0;
+  }
+}
+
+.progress-percent {
+  position: relative;
+  z-index: 3;
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #17224b;
+  letter-spacing: 0.08em;
+  font-family: 'Space Mono', 'Fira Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+}
+
+#progress-hint {
+  font-size: 0.95rem;
+  color: rgba(28, 39, 80, 0.65);
 }
 
 /* 卡片容器：這裡捲動 */

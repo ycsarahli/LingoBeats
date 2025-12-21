@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'dry/transaction'
+require 'json'
+require 'ostruct'
 
 module LingoBeats
   module Service
@@ -29,9 +31,34 @@ module LingoBeats
 
       # step 2. reify material entity from JSON
       def reify_material(material_json)
-        Representer::Material.new(OpenStruct.new)
-                             .from_json(material_json)
-                             .then { |material| Success(material) }
+        parsed = JSON.parse(material_json)
+
+        status = parsed['status'] || parsed[:status]
+        message = parsed['message'] || parsed[:message]
+
+        message_hash = message.is_a?(Hash) ? message : {}
+
+        request_id = parsed['request_id'] || parsed[:request_id] ||
+                     message_hash['request_id'] || message_hash[:request_id]
+
+        channel_id = parsed['channel_id'] || parsed[:channel_id] ||
+                     parsed['channel'] || parsed[:channel] ||
+                     message_hash['channel_id'] || message_hash[:channel_id] ||
+                     message_hash['channel'] || message_hash[:channel]
+
+        song_id = parsed['song_id'] || parsed[:song_id] ||
+                  message_hash['song_id'] || message_hash[:song_id]
+
+        Success(
+          OpenStruct.new(
+            status: status,
+            message: message,
+            request_id: request_id,
+            channel_id: channel_id,
+            song_id: song_id,
+            raw: parsed
+          )
+        )
       rescue StandardError
         Failure(REIFY_ERROR)
       end
