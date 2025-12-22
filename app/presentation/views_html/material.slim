@@ -1,94 +1,349 @@
 - starred_ids = (defined?(starred_vocab_ids) ? Array(starred_vocab_ids) : []).map { |id| Integer(id) rescue nil }.compact
+- generation_processing = defined?(processing) ? processing : nil
+- progress_active = generation_processing&.in_progress?
+- channel_ids = (progress_active ? generation_processing.ws_channel_ids : []) || []
 
-.main-material-layout.d-flex.mt-3.min-h-0
-  // Left: Song Info Area
-  .song-panel
-    - song_title = song&.name || 'No title'
-    - album_name = song&.album_name
-    - singers = song&.singers || []
-    - album_cover = song&.album_image_url
-    - cover_src = album_cover && !album_cover.to_s.empty? ? album_cover : '/placeholder-album.jpg'
-    - album_link = song&.external_url
+- if progress_active
+  - request_id = channel_ids.first
+  - ws_route   = generation_processing.ws_route
+  - ws_script  = generation_processing.ws_javascript
 
-    .song-hero.card.shadow-sm.p-2
-      .song-hero-inner.d-flex.flex-column.flex-md-row.align-items-center.gap-4
-        .album-cd-wrapper.position-relative.d-flex.align-items-center.justify-content-center data-bs-toggle="tooltip" data-bs-placement="top" title="Listen on Spotify"
-          .album-cd style="background-image: url('#{cover_src}');" aria-label="Album cover"
-            .album-cd-hole
-          a.album-overlay href=(album_link || '#') target="_blank" rel="noopener"
-            span.play-btn.rounded-circle.d-inline-flex.align-items-center.justify-content-center
-              i.fas.fa-play aria-hidden="true"
-        .song-meta.flex-grow-1.d-flex.flex-column
-          .song-top
-            .song-title.text-dark.fw-bold.mb-2 = song_title
-            .text-secondary.small.mb-1 = album_name
-          - if singers.any?
-            .singer-row
-              i.fas.fa-user-alt aria-hidden="true"
-              .singer-links
-                - singers.each_with_index do |singer, idx|
-                  - name = singer[:name] || singer['name']
-                  - url  = singer[:external_url] || singer['external_url']
-                  - next unless name
-                  - link_url = url && !url.empty? ? url : '#'
-                  a.singer-link href=link_url target="_blank" rel="noopener" = name
+  .material-progress-page.d-flex.align-items-center.justify-content-center.mt-5
+    .wave-stage[
+      data-request-id=request_id
+      data-channel-list=channel_ids.join(',')
+      data-ws-route=ws_route
+      data-ws-script=ws_script
+    ]
+      p.wave-caption.mb-3.text-uppercase.fw-semibold We’re gently filling your learning journey.
+      .wave-circle
+        .wave-inner style="--clip-top: 100%;"
+          span.wave.wave-base
+          span.wave.wave-crest
+        span.progress-percent 0%
+      p#progress-hint.text-muted.mt-3 Generating...
 
-    .lyrics-section.mt-2.mb-3
-      - if lyrics && lyrics.text
-        - normalized_vocab = {}
-        - if defined?(materials) && materials.respond_to?(:each)
-          - materials.each do |m|
-            - word = m.origin_word || m[:word]
-            - key  = word.to_s.downcase.gsub(/[^a-z']/,'')
-            - normalized_vocab[key] = true unless key.empty?
+      script src="#{ws_script}"
 
-        pre.lyrics-text
-          - lyrics.text.to_s.split(/\n/).each do |line|
-            - tokens = line.split(/(\s+)/)
-            - tokens.each do |tk|
-              - if tk =~ /\s+/
-                = tk
-              - else
-                - key = tk.downcase.gsub(/[^a-z']/,'')
-                - if normalized_vocab[key]
-                  span.lyrics-word data-vocab=key = tk
-                - else
+      javascript:
+        (function () {
+          var card = document.querySelector(".wave-stage");
+          if (!card) return;
+
+          var wsRoute      = card.dataset.wsRoute;
+          var requestId    = card.dataset.requestId;
+          var rawChannels  = card.dataset.channelList || "";
+
+          if (!wsRoute) return;
+
+          var candidateIds = [];
+
+          if (rawChannels) {
+            rawChannels.split(",").forEach(function (chunk) {
+              var trimmed = chunk.trim();
+              if (trimmed) candidateIds.push(trimmed);
+            });
+          }
+
+          if (requestId) {
+            candidateIds.push(requestId);
+          }
+
+          candidateIds = candidateIds.filter(function (val, idx, arr) {
+            return arr.indexOf(val) === idx && val;
+          });
+
+          console.log("[progress] dataset:", {
+            requestId: requestId,
+            rawChannels: rawChannels,
+            candidateIds: candidateIds,
+            wsRoute: wsRoute
+          });
+
+          if (!candidateIds.length) return;
+
+          var percentEl = card.querySelector(".progress-percent");
+          var circleEl  = card.querySelector(".wave-circle");
+          var hintEl    = document.getElementById("progress-hint");
+          var finished  = false;
+          var reloadScheduled = false;
+
+          function setBar(p) {
+            var bounded = Math.min(100, Math.max(0, p));
+            var crestSafe = Math.max(5, Math.min(95, bounded));
+
+            if (percentEl) percentEl.textContent = bounded + "%";
+
+            if (circleEl) {
+              circleEl.dataset.fill = bounded;
+              circleEl.style.setProperty("--fill", bounded + "%");
+              circleEl.style.setProperty("--crest", crestSafe + "%");
+              circleEl.style.setProperty("--level", (100 - bounded) + "%");
+            }
+
+            if (card) {
+              card.classList.add("wave-stage--active");
+            }
+          }
+
+          function clampPercent(x) {
+            var n = parseInt(x, 10);
+            if (isNaN(n)) return null;
+            if (n < 0) return 0;
+            if (n > 100) return 100;
+            return n;
+          }
+
+          function scheduleReload(delayMs) {
+            if (reloadScheduled) return;
+            reloadScheduled = true;
+            setTimeout(function () {
+              window.location = window.location.href;
+            }, delayMs || 1000);
+          }
+
+          function markFinished(message) {
+            finished = true;
+            if (hintEl) {
+              hintEl.textContent = (message && message.message) ? message.message : "Completed. Reloading…";
+            }
+
+            scheduleReload(800);
+          }
+
+          function parseMaybeJSON(value) {
+            if (typeof value !== "string") return value;
+
+            var trimmed = value.trim();
+            if (!trimmed) return value;
+
+            var firstChar = trimmed[0];
+            var lastChar = trimmed[trimmed.length - 1];
+            var looksJson =
+              (firstChar === "{" && lastChar === "}") ||
+              (firstChar === "[" && lastChar === "]");
+
+            if (!looksJson) return value;
+
+            try {
+              return JSON.parse(trimmed);
+            } catch (err) {
+              console.warn("[progress] failed to parse nested JSON", value, err);
+              return value;
+            }
+          }
+
+          function unwrapPayload(raw) {
+            if (!raw) return null;
+
+            var payload = parseMaybeJSON(raw);
+            if (!payload || typeof payload !== "object") return null;
+
+            var candidate = payload;
+
+            ["data", "message", "payload"].forEach(function (key) {
+              if (!candidate || typeof candidate !== "object") return;
+
+              var nested = candidate[key];
+              if (!nested) return;
+
+              var parsed = parseMaybeJSON(nested);
+              if (parsed && typeof parsed === "object") {
+                candidate = parsed;
+              }
+            });
+
+            return (candidate && typeof candidate === "object") ? candidate : null;
+          }
+
+          function handleMessage(rawMessage) {
+            // expected: {status, percent, current?, total?, message?}
+            var message = unwrapPayload(rawMessage);
+            if (!message) return;
+
+            console.log("[progress] message:", message);
+
+            // optional error convention
+            if (message.status === "error") {
+              setBar(100);
+              if (hintEl) hintEl.textContent = message.message || "Generation failed";
+              return;
+            }
+
+            var p = clampPercent(message.percent);
+            if (p === null) return;
+
+            setBar(p);
+
+            // hint
+            if (hintEl) {
+              hintEl.textContent =
+                (message.status === "finished" || p === 100)
+                  ? "Completed!"
+                  : "Generating...";
+            }
+
+            // 完成就刷新
+            if (message.status === "finished" || p === 100) {
+              markFinished(message);
+            }
+          }
+
+          function buildChannels(rawIds) {
+            var ids = [];
+            if (!rawIds) return ids;
+
+            var list = Array.isArray(rawIds) ? rawIds : [rawIds];
+
+            list.forEach(function (rawId) {
+              if (!rawId) return;
+
+              var id = String(rawId).trim();
+              if (!id) return;
+
+              if (id[0] !== "/") {
+                ids.push("/" + id);
+              } else {
+                ids.push(id);
+              }
+            });
+
+            return ids.filter(function (val, idx, arr) { return arr.indexOf(val) === idx; });
+          }
+
+          var client;
+          try {
+            client = new Faye.Client(wsRoute);
+          } catch (err) {
+            console.warn("[progress] Failed to init Faye", err);
+          }
+
+          function subscribeChannel(channel) {
+            if (!client) return;
+
+            try {
+              client.subscribe(channel, handleMessage)
+                .then(function () {
+                  console.log("[progress] subscribed:", channel);
+                }, function (error) {
+                  console.warn("[progress] subscribe failed:", channel, error && error.message);
+                });
+            } catch (err) {
+              console.error("[progress] subscribe threw:", channel, err);
+            }
+          }
+
+          if (client && typeof client.on === "function") {
+            client.on("transport:up", function () {
+              console.log("[progress] transport up:", arguments);
+            });
+            client.on("transport:down", function () {
+              console.warn("[progress] transport down:", arguments);
+            });
+          }
+
+          if (client) {
+            var channels = buildChannels(candidateIds);
+            console.log("[progress] subscribing channels:", channels);
+            channels.forEach(subscribeChannel);
+          }
+
+        })();
+
+- else
+  .main-material-layout.d-flex.mt-3.min-h-0
+    - if defined?(bad_message) && bad_message
+      .alert.alert-warning.w-100.mb-3 = bad_message
+
+    // Left: Song Info Area
+    .song-panel
+      - song_title = song&.name || 'No title'
+      - album_name = song&.album_name
+      - singers = song&.singers || []
+      - album_cover = song&.album_image_url
+      - cover_src = album_cover && !album_cover.to_s.empty? ? album_cover : '/placeholder-album.jpg'
+      - album_link = song&.external_url
+
+      .song-hero.card.shadow-sm.p-2
+        .song-hero-inner.d-flex.flex-column.flex-md-row.align-items-center.gap-4
+          .album-cd-wrapper.position-relative.d-flex.align-items-center.justify-content-center data-bs-toggle="tooltip" data-bs-placement="top" title="Listen on Spotify"
+            .album-cd style="background-image: url('#{cover_src}');" aria-label="Album cover"
+              .album-cd-hole
+            a.album-overlay href=(album_link || '#') target="_blank" rel="noopener"
+              span.play-btn.rounded-circle.d-inline-flex.align-items-center.justify-content-center
+                i.fas.fa-play aria-hidden="true"
+          .song-meta.flex-grow-1.d-flex.flex-column
+            .song-top
+              .song-title.text-dark.fw-bold.mb-2 = song_title
+              .text-secondary.small.mb-1 = album_name
+            - if singers.any?
+              .singer-row
+                i.fas.fa-user-alt aria-hidden="true"
+                .singer-links
+                  - singers.each_with_index do |singer, idx|
+                    - name = singer[:name] || singer['name']
+                    - url  = singer[:external_url] || singer['external_url']
+                    - next unless name
+                    - link_url = url && !url.empty? ? url : '#'
+                    a.singer-link href=link_url target="_blank" rel="noopener" = name
+
+      .lyrics-section.mt-2.mb-3
+        - if lyrics && lyrics.text
+          - normalized_vocab = {}
+          - if defined?(materials) && materials.respond_to?(:each)
+            - materials.each do |m|
+              - word = m.origin_word || m[:word]
+              - key  = word.to_s.downcase.gsub(/[^a-z']/,'')
+              - normalized_vocab[key] = true unless key.empty?
+
+          pre.lyrics-text
+            - lyrics.text.to_s.split(/\n/).each do |line|
+              - tokens = line.split(/(\s+)/)
+              - tokens.each do |tk|
+                - if tk =~ /\s+/
                   = tk
-            = "\n"
-      - else
-        p.lyrics-empty.text-muted No lyrics available.
+                - else
+                  - key = tk.downcase.gsub(/[^a-z']/,'')
+                  - if normalized_vocab[key]
+                    span.lyrics-word.lyrics-word--matched data-vocab=key = tk
+                  - else
+                    = tk
+              = "\n"
+        - else
+          p.lyrics-empty.text-muted No lyrics available.
 
 
-  // Right: Material Area
-  .material-panel.mt-3
-    h2.text-main.fw-bold.mb-3 Vocabularies
-    .materials-scroll.overflow-auto
+    // Right: Material Area
+    .material-panel.mt-3
+      h2.text-main.fw-bold.mb-3 Vocabularies
+
+      .materials-scroll.overflow-auto
+        - if materials && materials.any?
+          - idx = 0
+          - materials.each do |material|
+            - main_pos = nil
+            - if material.meanings && material.meanings.any?
+              - first_meaning = material.meanings.first
+              - main_pos = first_meaning[:pos] || first_meaning['pos']
+
+            - vocab_id = material.id || material[:id] || material['id']
+            - starred_flag = vocab_id && starred_ids.include?(vocab_id.to_i)
+            .card.mb-4.shadow-sm.material-card.material-card-fixed(
+              data-origin-word=material.origin_word.to_s.downcase
+              data-lemma=material.word.to_s.downcase
+              data-index=idx
+              class=(idx == 0 ? '' : 'd-none')
+            )
+              - card_locals = { card_word: material.word, head_zh: material.head_zh, level_text: material.difficulty_label, badge_class: material.difficulty_class, meanings: material.meanings, related_forms: material.respond_to?(:related_forms) ? material.related_forms : nil, default_pos: main_pos, vocab_id: vocab_id, starred: starred_flag }
+              == render 'partials/_vocab_card_body', locals: card_locals
+
+            - idx += 1
+
+        - else
+          p.text-muted 沒有拿到任何 vocab 資料（materials 目前是空的）
+
       - if materials && materials.any?
-        - idx = 0
-        - materials.each do |material|
-          - main_pos = nil
-          - if material.meanings && material.meanings.any?
-            - first_meaning = material.meanings.first
-            - main_pos = first_meaning[:pos] || first_meaning['pos']
-
-          - vocab_id = material.id || material[:id] || material['id']
-          - starred_flag = vocab_id && starred_ids.include?(vocab_id.to_i)
-          .card.mb-4.shadow-sm.material-card.material-card-fixed(
-            data-origin-word=material.origin_word.to_s.downcase
-            data-lemma=material.word.to_s.downcase
-            data-index=idx
-            class=(idx == 0 ? '' : 'd-none')
-          )
-            - card_locals = { card_word: material.word, head_zh: material.head_zh, level_text: material.difficulty_label, badge_class: material.difficulty_class, meanings: material.meanings, related_forms: material.respond_to?(:related_forms) ? material.related_forms : nil, default_pos: main_pos, vocab_id: vocab_id, starred: starred_flag }
-            == render 'partials/_vocab_card_body', locals: card_locals
-
-          - idx += 1
-
-      - else
-        p.text-muted 沒有拿到任何 vocab 資料（materials 目前是空的）
-
-    - if materials && materials.any?
-      .material-pager.d-flex.justify-content-between.align-items-center.mt-3.mb-3.me-2
-        button#materialPrev.btn.btn-sm.btn-outline-secondary type="button" Previos
-        span#materialCounter.small.text-muted
-        button#materialNext.btn.btn-sm.btn-outline-secondary type="button" Next
+        .material-pager.d-flex.justify-content-between.align-items-center.mt-3.mb-3.me-2
+          button#materialPrev.btn.btn-sm.btn-outline-secondary type="button" Previos
+          span#materialCounter.small.text-muted
+          button#materialNext.btn.btn-sm.btn-outline-secondary type="button" Next

@@ -20,7 +20,7 @@ module LingoBeats
       # :reek:FeatureEnvy
       def get_material(input)
         result = Gateway::Api.new(App.config)
-                             .get_song_material(input)
+                             .get_song_material(input[:song_id])
 
         result.success? ? Success(result.payload) : Failure(result.payload)
       rescue StandardError

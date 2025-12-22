@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'concurrent'
+
 module LingoBeats
   module RouteHelpers
     # Application value for parsing the result from Service calls
@@ -25,6 +27,35 @@ module LingoBeats
         parsed['message']
       rescue JSON::ParserError
         failure
+      end
+    end
+
+    # Shared registry to remember Faye request_ids per song across sessions
+    module MaterialProgressRegistry
+      extend self
+
+      def remember(song_id, request_id)
+        return unless song_id && request_id
+
+        store[song_id.to_s] = request_id.to_s
+      end
+
+      def fetch(song_id)
+        return unless song_id
+
+        store[song_id.to_s]
+      end
+
+      def forget(song_id)
+        return unless song_id
+
+        store.delete(song_id.to_s)
+      end
+
+      private
+
+      def store
+        @store ||= Concurrent::Map.new
       end
     end
   end

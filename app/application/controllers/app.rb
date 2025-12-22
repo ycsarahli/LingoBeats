@@ -30,10 +30,6 @@ module LingoBeats
 
       # GET /
       routing.root do
-        App.logger.info('Home page accessed')
-        api_base = App.config.API_HOST
-        App.logger.info("LingoBeats API Host: #{api_base}")
-
         @current_page = :home
 
         # Get cookie viewer's previously searched
@@ -44,10 +40,7 @@ module LingoBeats
 
         # Show popular songs on home page
         result = Service::ListSongs.new.call(:popular)
-        App.logger.info("List popular songs result: #{result.inspect}")
         songs, bad_message = RouteHelpers::ResultParser.parse_multi(result, :songs) do |songs, error|
-          App.logger.info("Parsing popular songs succeeded: #{songs.size} songs")
-          App.logger.info("Parsing popular songs failed: #{error}")
           [Views::SongsList.new(songs), error]
         end
 
@@ -161,16 +154,25 @@ module LingoBeats
         # GET /songs/:id/material
         routing.on 'material' do
           routing.get do
-            result = Service::EnsureMaterial.new.call(song_id, session:)
+            add_result = Service::AddMaterial.new.call(song_id)
+            add_failure = nil
 
-            song = nil
-            lyrics = nil
-            materials = Views::MaterialsList.new([])
-            starred_vocab_ids = []
-            bad_message = nil
+            if add_result.success?
+              processing_state = Views::GenerationProcessing.new(
+                App.config,
+                add_result.value!,
+                fallback_channel_id: song_id
+              )
+              return view 'material', locals: { processing: processing_state } if processing_state.in_progress?
 
-            if result.success?
-              payload = result.value!
+            else
+              add_failure = add_result.failure
+            end
+
+            ensure_result = Service::EnsureMaterial.new.call(song_id: song_id, session: session)
+
+            if ensure_result.success?
+              payload = ensure_result.value!
 
               song_entity = payload.song
               song = song_entity ? Views::Song.new(song_entity) : nil
@@ -182,18 +184,24 @@ module LingoBeats
               materials = Views::MaterialsList.new(materials_list)
 
               starred_vocab_ids = payload.starred_vocab_ids || []
-              warnings = Array(payload.warnings).compact
-              bad_message = warnings.first
-            else
-              bad_message = result.failure
+
+              return view 'material',
+                          locals: { song:, lyrics:, materials:, bad_message: nil, starred_vocab_ids: }
             end
 
+            bad_message = ensure_result.failure || add_failure || '目前無法取得教材內容'
+
+            song = nil
+            lyrics = nil
+            materials = Views::MaterialsList.new([])
+            starred_vocab_ids = []
+
             view 'material', locals: {
-              song:,
-              lyrics:,
-              materials:,
-              bad_message:,
-              starred_vocab_ids:
+              song: song,
+              lyrics: lyrics,
+              materials: materials,
+              bad_message: bad_message,
+              starred_vocab_ids: starred_vocab_ids
             }
           end
         end
