@@ -74,7 +74,8 @@ ruby:
       h2.fw-bold.text-dark.mb-2 Learning History
 
       - if defined?(history_error) && history_error
-        .alert.alert-warning.mb-0.mt-3 = history_error
+        ruby:
+          Rails.logger.warn("history_error: #{history_error.inspect}")
 
       .d-flex.flex-column.flex-md-row.align-items-md-stretch.justify-content-md-between.gap-3.mt-3.w-100
         .difficulty-tabs.d-flex.flex-wrap.gap-2.mb-0
