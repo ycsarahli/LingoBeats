@@ -5,6 +5,8 @@ require 'json'
 module Views
   # View object to capture progress bar information
   class GenerationProcessing
+    CANDIDATE_KEYS = %i[channel_id channel request_id song_id job_id].freeze
+
     def initialize(config, response, fallback_channel_id: nil)
       @config = config
       @response = response
@@ -51,8 +53,6 @@ module Views
     end
 
     private
-
-    CANDIDATE_KEYS = %i[channel_id channel request_id song_id job_id].freeze
 
     def extract_ids_from(source)
       return [] if source.nil?

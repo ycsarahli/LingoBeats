@@ -87,18 +87,18 @@ ruby:
         .view-toggle.d-inline-flex.align-items-center.gap-2.ms-md-auto role="group"
           button.view-toggle-btn.vocab-view-btn.active type="button" data-view="list"
             i.fas.fa-table-cells.me-0 aria-hidden="true"
-            span.visually-hidden 列表模式
+            span.visually-hidden List view
           button.view-toggle-btn.vocab-view-btn type="button" data-view="flashcards"
             i.fas.fa-layer-group.me-0 aria-hidden="true"
-            span.visually-hidden 卡片模式
+            span.visually-hidden Card view
 
   .history-scroll
     .container.history-container.py-3
       .history-mode-panel#historyVocabulary
         .history-vocab-empty class=(saved_vocabularies.any? ? 'd-none' : nil)
           i.fas.fa-box-open.fa-2x.text-muted.mb-3 aria-hidden="true"
-          h4.text-secondary.mb-1 目前還沒有收藏單字
-          p.text-muted.mb-0 到課程中點擊星號，就能把單字加入收藏清單。
+          h4.text-secondary.mb-1 No saved vocabulary yet
+          p.text-muted.mb-0 Click the star during lessons to add words to your collection.
 
         .history-vocab-interactive class=(saved_vocabularies.any? ? nil : 'd-none')
           .history-vocab-inner
@@ -155,7 +155,7 @@ ruby:
                               span.badge class=badge_class = level_text
 
                             - star_classes = ['fas', 'fa-star', 'fav-star', 'is-fav']
-                            i class=star_classes.join(' ') role="button" tabindex="0" aria-label="切換收藏" aria-pressed="true" aria-hidden="true" data-vocab-id=vocab_id data-history-word=dataset_key
+                            i class=star_classes.join(' ') role="button" tabindex="0" aria-label="Toggle favorite" aria-pressed="true" aria-hidden="true" data-vocab-id=vocab_id data-history-word=dataset_key
 
                       template.vocab-detail-template
                         .history-detail-card
@@ -177,19 +177,19 @@ ruby:
             .history-vocab-detail-panel
               button.history-detail-back.btn.btn-link.p-0.mb-3 type="button"
                 i.fas.fa-chevron-left.me-1 aria-hidden="true"
-                | 返回列表
-              .history-vocab-detail-body data-placeholder="點選左側單字以查看詳細內容。" data-empty="該分類目前沒有單字。"
+                | Back to list
+              .history-vocab-detail-body data-placeholder="Select a word on the left to view its details." data-empty="No words are available in this category."
                 - if saved_vocabularies.any?
-                  p.text-muted.mb-0 點選左側單字以查看詳細內容。
+                  p.text-muted.mb-0 Select a word on the left to view its details.
                 - else
-                  p.text-muted.mb-0 目前沒有收藏單字。
+                  p.text-muted.mb-0 No vocabulary has been saved yet.
 
             .history-flashcard-panel.d-none
               .d-flex.align-items-center.justify-content-end.mb-3
                 span.fw-semibold.text-uppercase.small#historyFlashcardCounter 0 / 0
 
               .history-flashcard-stage
-                button.flashcard-nav-btn.btn.btn-light.rounded-circle aria-label="上一張" type="button" data-flashcard-nav="prev"
+                button.flashcard-nav-btn.btn.btn-light.rounded-circle aria-label="Previous card" type="button" data-flashcard-nav="prev"
                   i.fas.fa-chevron-left aria-hidden="true"
 
                 .history-flashcard-wrapper
@@ -229,7 +229,7 @@ ruby:
                               span.badge class=badge_class = level_text
 
                             - star_classes = ['fas', 'fa-star', 'fav-star', 'is-fav']
-                            i class=star_classes.join(' ') role="button" tabindex="0" aria-label="切換收藏" aria-pressed="true" aria-hidden="true" data-vocab-id=vocab_id data-history-word=dataset_key
+                            i class=star_classes.join(' ') role="button" tabindex="0" aria-label="Toggle favorite" aria-pressed="true" aria-hidden="true" data-vocab-id=vocab_id data-history-word=dataset_key
 
                           .flashcard-front-main
                             h3.flashcard-word.mb-0.text-center = word
@@ -238,7 +238,7 @@ ruby:
                                 - pos_list.each do |abbr|
                                   span.pos-pill = abbr
 
-                          p.flashcard-hint.small 點擊卡片翻面查看完整資訊
+                          p.flashcard-hint.small Tap the card to flip and view full details
 
                         .flashcard-face.flashcard-back
                           ruby:
@@ -258,21 +258,21 @@ ruby:
                           .flashcard-back-body
                             == render('partials/_vocab_card_body', locals: back_locals)
 
-                button.flashcard-nav-btn.btn.btn-light.rounded-circle aria-label="下一張" type="button" data-flashcard-nav="next"
+                button.flashcard-nav-btn.btn.btn-light.rounded-circle aria-label="Next card" type="button" data-flashcard-nav="next"
                   i.fas.fa-chevron-right aria-hidden="true"
 
   / Unstar confirmation modal
   #historyUnstarModal.modal.fade tabindex="-1" aria-labelledby="historyUnstarModalLabel" aria-hidden="true"
-    .modal-dialog
+    .modal-dialog.modal-dialog-centered.history-unstar-modal
       .modal-content
         .modal-header
-          h5.modal-title#historyUnstarModalLabel 確認要移除這個收藏？
+          h5.modal-title.text-main#historyUnstarModalLabel Remove this favorite?
           button.btn-close type="button" data-bs-dismiss="modal" aria-label="Close"
         .modal-body
-          p.mb-3 移除後，這個單字就不會再出現在歷史收藏中。
+          p.mb-2 After removal, this word will no longer appear in your history favorites.
           .form-check
             input.form-check-input#historyUnstarSkip type="checkbox"
-            label.form-check-label for="historyUnstarSkip" 下次不再詢問，直接移除
+            label.form-check-label for="historyUnstarSkip" Don't ask again next time—remove immediately
         .modal-footer
-          button.btn.btn-outline-secondary type="button" data-bs-dismiss="modal" 取消
-          button.btn.btn-danger type="button" data-confirm-unstar="true" 確認移除
+          button.btn.btn-outline-secondary type="button" data-bs-dismiss="modal" Cancel
+          button.btn.btn-danger type="button" data-confirm-unstar="true" Confirm removal

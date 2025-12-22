@@ -305,7 +305,7 @@
                 - else
                   - key = tk.downcase.gsub(/[^a-z']/,'')
                   - if normalized_vocab[key]
-                    span.lyrics-word data-vocab=key = tk
+                    span.lyrics-word.lyrics-word--matched data-vocab=key = tk
                   - else
                     = tk
               = "\n"

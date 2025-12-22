@@ -760,6 +760,59 @@
       const nextBtn = document.getElementById('materialNext');
       const counter = document.getElementById('materialCounter');
       const materialContainer = document.querySelector('.materials-scroll');
+      const lyricsContainer = document.querySelector('.lyrics-text');
+      const materialCardKeys = materialCards.map(() => []);
+      const lyricWordMap = {};
+      let updateLyricHighlight = () => {};
+
+      // 共同的「正規化單字」函式：變小寫、去掉非字母與 '
+      function normalizeKey(str) {
+        return (str || '')
+          .toLowerCase()
+          .replace(/[^a-z']/g, '');
+      }
+
+      materialCards.forEach((card, idx) => {
+        const keys = [];
+        const originRaw =
+          card.dataset.originWord ||
+          card.getAttribute('data-origin-word') ||
+          '';
+
+        const lemmaRaw =
+          card.dataset.lemma ||
+          card.getAttribute('data-lemma') ||
+          card.dataset.vocab ||
+          card.getAttribute('data-word') ||
+          '';
+
+        const originKey = normalizeKey(originRaw);
+        const lemmaKey = normalizeKey(lemmaRaw);
+
+        if (originKey) keys.push(originKey);
+        if (lemmaKey && lemmaKey !== originKey) keys.push(lemmaKey);
+        materialCardKeys[idx] = keys;
+      });
+
+      if (lyricsContainer) {
+        lyricsContainer.querySelectorAll('.lyrics-word').forEach((word) => {
+          const raw = word.dataset.vocab || word.textContent || '';
+          const key = normalizeKey(raw);
+          if (!key) return;
+          if (!lyricWordMap[key]) lyricWordMap[key] = [];
+          lyricWordMap[key].push(word);
+        });
+      }
+
+      if (lyricsContainer && materialCards.length) {
+        updateLyricHighlight = (keys = []) => {
+          lyricsContainer.querySelectorAll('.lyrics-word--active')
+            .forEach((el) => el.classList.remove('lyrics-word--active'));
+          keys.forEach((key) => {
+            (lyricWordMap[key] || []).forEach((el) => el.classList.add('lyrics-word--active'));
+          });
+        };
+      }
 
       let currentMaterialIndex = 0;
 
@@ -781,6 +834,7 @@
           counter.textContent = `${currentMaterialIndex + 1} / ${materialCards.length}`;
         }
 
+        updateLyricHighlight(materialCardKeys[currentMaterialIndex]);
         if (prevBtn) prevBtn.disabled = (currentMaterialIndex === 0);
         if (nextBtn) nextBtn.disabled = (currentMaterialIndex === materialCards.length - 1);
       }
@@ -806,51 +860,13 @@
       }
 
       // === Material page: 歌詞點擊 → 單字卡跳頁 ===
-      const lyricsContainer = document.querySelector('.lyrics-text');
-
       console.log('[material] init, hasLyrics =', !!lyricsContainer, 'cards =', materialCards.length);
-
-      // 共同的「正規化單字」函式：變小寫、去掉非字母與 '
-      function normalizeKey(str) {
-        return (str || '')
-          .toLowerCase()
-          .replace(/[^a-z']/g, '');
-      }
 
       if (lyricsContainer && materialCards.length) {
         const vocabToIndex = {};
-        materialCards.forEach((card, idx) => {
-          // const raw =
-          //   card.dataset.originWord ||
-          //   card.getAttribute('data-origin-word') ||
-          //   card.dataset.vocab ||
-          //   (card.querySelector('.vocab-word') &&
-          //   card.querySelector('.vocab-word').textContent) ||
-          //   '';
-
-          // const key = normalizeKey(raw);
-          // if (key && !(key in vocabToIndex)) {
-          //   vocabToIndex[key] = idx;
-          // }
-          materialCards.forEach((card, idx) => {
-            const originRaw =
-              card.dataset.originWord ||
-              card.getAttribute('data-origin-word') ||
-              '';
-
-            const lemmaRaw =
-              card.dataset.lemma ||
-              card.getAttribute('data-lemma') ||
-              card.dataset.vocab ||               // 兼容你舊的
-              card.getAttribute('data-word') ||
-              '';
-
-            const originKey = normalizeKey(originRaw);
-            const lemmaKey = normalizeKey(lemmaRaw);
-
-            // 同一張卡，存兩把 key（origin + lemma）
-            if (originKey && !(originKey in vocabToIndex)) vocabToIndex[originKey] = idx;
-            if (lemmaKey && !(lemmaKey in vocabToIndex)) vocabToIndex[lemmaKey] = idx;
+        materialCardKeys.forEach((keys, idx) => {
+          keys.forEach((key) => {
+            if (key && !(key in vocabToIndex)) vocabToIndex[key] = idx;
           });
         });
 
@@ -881,9 +897,6 @@
 
           showMaterialCardFromLyrics(targetIndex);
 
-          document.querySelectorAll('.lyrics-word--active')
-            .forEach((el) => el.classList.remove('lyrics-word--active'));
-          wordEl.classList.add('lyrics-word--active');
         });
       }
     }
@@ -1040,6 +1053,7 @@
       const vocabBrowser = historyPage.querySelector('.history-vocab-browser');
       const flashcardPanel = historyPage.querySelector('.history-flashcard-panel');
       const flashcardWrapper = historyPage.querySelector('.history-flashcard-wrapper');
+      const flashcardStage = historyPage.querySelector('.history-flashcard-stage');
       const flashcardNavPrev = historyPage.querySelector('[data-flashcard-nav="prev"]');
       const flashcardNavNext = historyPage.querySelector('[data-flashcard-nav="next"]');
       const flashcardCounter = historyPage.querySelector('#historyFlashcardCounter');
@@ -1096,32 +1110,63 @@
       flashcardNavNext?.addEventListener('click', () => stepFlashcard(1));
 
       // 設置閃卡高度
+      function getAvailableFlashcardHeight() {
+        const reserveSpace = 56; // keep nav buttons + bottom padding visible
+        const stageRect = flashcardStage?.getBoundingClientRect();
+        const panelRect = flashcardPanel?.getBoundingClientRect();
+
+        const viewportSpace = stageRect
+          ? window.innerHeight - stageRect.top - reserveSpace
+          : window.innerHeight - reserveSpace;
+
+        let panelSpace = Number.POSITIVE_INFINITY;
+        if (flashcardPanel) {
+          const stageOffsetInsidePanel = stageRect && panelRect
+            ? stageRect.top - panelRect.top
+            : flashcardStage?.offsetTop ?? 0;
+          panelSpace = flashcardPanel.clientHeight - stageOffsetInsidePanel - reserveSpace;
+        }
+
+        const available = Math.min(viewportSpace, panelSpace);
+        return Math.max(260, available);
+      }
+
       function setFlashcardHeight(card) {
         if (!card) return;
 
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
         const aspectRatio = windowWidth / windowHeight;
+        const isLandscape = aspectRatio >= 1;
+        const availableHeight = getAvailableFlashcardHeight();
+        let targetHeight;
 
-        if (aspectRatio >= 1) {
+        if (isLandscape) {
           // 橫卡
           if (windowWidth <= 768) {
-            card.style.height = Math.min(windowHeight * 0.6, 450) + 'px';
-            card.style.maxWidth = Math.min(windowWidth * 0.9, 700) + 'px';
+            targetHeight = Math.min(windowHeight * 0.82, 640);
           } else {
-            card.style.height = '450px';
-            card.style.maxWidth = '700px';
+            targetHeight = 640;
           }
         } else {
           // 直卡
           if (windowWidth <= 768) {
-            card.style.height = Math.min(windowHeight * 0.7, 600) + 'px';
-            card.style.maxWidth = Math.min(windowWidth * 0.9, 500) + 'px';
+            targetHeight = Math.min(windowHeight * 0.94, 820);
           } else {
-            card.style.height = '600px';
-            card.style.maxWidth = '500px';
+            targetHeight = 820;
           }
         }
+
+        const finalHeight = Math.max(280, Math.min(targetHeight, availableHeight));
+        card.style.height = `${finalHeight}px`;
+
+        let maxWidth;
+        if (isLandscape) {
+          maxWidth = windowWidth <= 768 ? Math.min(windowWidth * 0.9, 700) : 700;
+        } else {
+          maxWidth = windowWidth <= 768 ? Math.min(windowWidth * 0.9, 500) : 500;
+        }
+        card.style.maxWidth = `${maxWidth}px`;
       }
 
       // 視窗 resize 處理
@@ -1771,6 +1816,23 @@
         }
       }
 
+      function updateDifficultyCounts() {
+        if (!difficultyTabs.length) return;
+        const items = Array.from(historyPage.querySelectorAll('.history-vocab-item'));
+        const counts = { all: items.length };
+        items.forEach((item) => {
+          const difficulty = item.dataset.difficulty || 'medium';
+          counts[difficulty] = (counts[difficulty] || 0) + 1;
+        });
+        difficultyTabs.forEach((tab) => {
+          const filter = tab.dataset.filter || 'all';
+          const countEl = tab.querySelector('.tab-count');
+          if (!countEl) return;
+          const value = Object.prototype.hasOwnProperty.call(counts, filter) ? counts[filter] : 0;
+          countEl.textContent = value;
+        });
+      }
+
       function removeWordFromHistory(wordKey) {
         if (!wordKey) return;
         const normalized = wordKey.toLowerCase();
@@ -1781,6 +1843,7 @@
           .forEach((el) => el.remove());
 
         applyDifficultyFilter(currentDifficultyFilter);
+        updateDifficultyCounts();
         updateVocabEmptyState();
         refreshFlashcards();
         bindHistoryStars();
