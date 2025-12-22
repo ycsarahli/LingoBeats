@@ -73,13 +73,6 @@ ruby:
     .container
       h2.fw-bold.text-dark.mb-2 Learning History
 
-      - if defined?(history_error) && history_error
-        - begin
-        -   Rails.logger.warn("history_error: #{history_error.inspect}") if defined?(Rails)
-        - rescue => log_error
-        -   warn("history_error logging failed: #{log_error.message}")
-        - end
-
       .d-flex.flex-column.flex-md-row.align-items-md-stretch.justify-content-md-between.gap-3.mt-3.w-100
         .difficulty-tabs.d-flex.flex-wrap.gap-2.mb-0
           - { 'all' => 'All', 'easy' => 'Easy', 'medium' => 'Medium', 'hard' => 'Hard' }.each do |filter_key, label|
