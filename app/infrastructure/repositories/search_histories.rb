@@ -27,6 +27,13 @@ module LingoBeats
           session[SINGER_KEY] = payload[:singer_search_history]
           history
         end
+
+        def update(session)
+          history = load_from(session)
+          updated = yield(history)
+          save_to(session, updated)
+          updated
+        end
       end
     end
   end

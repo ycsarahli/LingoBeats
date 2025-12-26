@@ -93,16 +93,8 @@ module LingoBeats
 
         private
 
-        def params_str(params)
-          return '' if params.nil? || params.empty?
-
-          query = params.map { |key, value| "#{key}=#{value}" }.join('&')
-          "?#{query}"
-        end
-
         def call_api(method, resources = [], params = {})
-          api_path = resources.empty? ? @api_host : @api_root
-          url = [api_path, resources].flatten.join('/') + params_str(params)
+          url = [@api_root, resources].flatten.join('/') + QueryString.new(params).to_s
 
           HTTP.headers('Accept' => 'application/json').send(method, url)
               .then { |http_response| Response.new(http_response) }
@@ -126,6 +118,19 @@ module LingoBeats
 
           def payload
             body.to_s
+          end
+        end
+
+        # Builds query string for API requests
+        class QueryString
+          def initialize(params = {})
+            @params = params
+          end
+
+          def to_s
+            return '' if @params.empty?
+
+            "?#{@params.map { |key, value| "#{key}=#{value}" }.join('&')}"
           end
         end
       end

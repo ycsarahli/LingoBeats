@@ -11,8 +11,8 @@ module LingoBeats
       def call(session)
         entity = Repository::SearchHistories.load_from(session)
         Success(entity)
-      rescue StandardError => e
-        App.logger.error(e.full_message)
+      rescue StandardError => error
+        App.logger.error("[ListSearchHistories] #{error.full_message}")
         Success(Entity::SearchHistory.new(song_names: [], singers: []))
       end
     end

@@ -9,11 +9,7 @@ module LingoBeats
       include Dry::Monads::Result::Mixin
 
       def call(session, category, query)
-        history = Repository::SearchHistories.load_from(session)
-        updated = history.add(category:, query:)
-
-        Repository::SearchHistories.save_to(session, updated)
-
+        updated = Repository::SearchHistories.update(session) { |history| history.add(category:, query:) }
         Success(updated)
       rescue StandardError => error
         App.logger.error(error.full_message)

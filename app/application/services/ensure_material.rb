@@ -1,4 +1,3 @@
-# app/application/services/ensure_material.rb
 # frozen_string_literal: true
 
 require 'ostruct'
@@ -6,6 +5,7 @@ require 'dry/transaction'
 
 module LingoBeats
   module Service
+    # Transaction to ensure all material page related data is fetched and reified
     class EnsureMaterial
       include Dry::Transaction
 
@@ -21,70 +21,93 @@ module LingoBeats
 
       # input: { song_id:, session: }
       def fetch_material_record(input)
-        get_result = GetMaterial.new.call(song_id: input[:song_id])
-        return Failure(get_result.failure) if get_result.failure?
-
-        Success(input.merge(material: get_result.value!))
+        StepHelpers.merge_step(input, key: :material) do
+          material_service.call(song_id: input[:song_id])
+        end
       end
 
       def fetch_lyrics(input)
-        lyric_result = GetLyric.new.call(song_id: input[:song_id])
-        return Failure(lyric_result.failure) if lyric_result.failure?
-
-        Success(input.merge(lyric: lyric_result.value!))
+        StepHelpers.merge_step(input, key: :lyric) do
+          lyric_service.call(song_id: input[:song_id])
+        end
       end
 
       def fetch_song_info(input)
-        song_result = GetSong.new.call(song_id: input[:song_id])
-        return Failure(song_result.failure) if song_result.failure?
-
-        Success(input.merge(song: song_result.value!))
+        StepHelpers.merge_step(input, key: :song) do
+          song_service.call(song_id: input[:song_id])
+        end
       end
 
       def fetch_starred_vocab_ids(input)
-        session = input[:session]
-        return Success(input.merge(starred_vocab_ids: [])) unless session
-
-        starred_result = ListStarVocabularies.new.call(session)
-        if starred_result.success?
-          vocab_ids = starred_result.value!.vocabularies.map(&:id)
-          return Success(input.merge(starred_vocab_ids: vocab_ids))
-        end
-
-        Success(input.merge(starred_vocab_ids: []))
+        ids = StarredIdsFetcher.call(input[:session], star_vocab_service)
+        Success(input.merge(starred_vocab_ids: ids))
       end
 
+      # :reek:FeatureEnvy
       def reify_response(input)
-        material_payload = input[:material]
-
-        Success(
-          OpenStruct.new(
-            materials: extract_materials(material_payload),
-            song: input[:song],
-            lyrics: input[:lyric],
-            starred_vocab_ids: input[:starred_vocab_ids]
-          )
+        response = OpenStruct.new(
+          materials: Array(input[:material]&.contents || []),
+          song: input[:song],
+          lyrics: input[:lyric],
+          starred_vocab_ids: input[:starred_vocab_ids]
         )
+        Success(response)
       rescue StandardError => error
         App.logger.error(error.full_message)
         Failure(REIFY_ERROR)
       end
 
-      def extract_materials(material_payload)
-        return [] if material_payload.nil?
+      # --- Service root ---
+      def material_service
+        @material_service ||= GetMaterial.new
+      end
 
-        if material_payload.respond_to?(:materials)
-          material_payload.materials
-        elsif material_payload.respond_to?(:contents)
-          material_payload.contents
-        elsif material_payload.is_a?(Hash)
-          material_payload[:materials] || material_payload['materials'] ||
-            material_payload[:contents] || material_payload['contents'] || []
-        else
+      def lyric_service
+        @lyric_service ||= GetLyric.new
+      end
+
+      def song_service
+        @song_service ||= GetSong.new
+      end
+
+      def star_vocab_service
+        @star_vocab_service ||= ListStarVocabularies.new
+      end
+
+      # --- Helpers ---
+      # Helper for forwarding input
+      module StepHelpers
+        extend Dry::Monads[:result]
+
+        def self.merge_step(input, key:)
+          result = yield
+          ResultUnwrapper.call(result) do |value|
+            Success(input.merge(key => value))
+          end
+        end
+      end
+
+      # Class to unwrap Dry::Monads::Result
+      class ResultUnwrapper
+        extend Dry::Monads[:result]
+
+        def self.call(result)
+          return Failure(result.failure) unless result.success?
+
+          yield(result.value!)
+        end
+      end
+
+      # Class to fetch starred vocabulary IDs from session
+      class StarredIdsFetcher
+        def self.call(session, service = ListStarVocabularies.new)
+          result = service.call(session)
+          return [] unless result.success?
+
+          result.value!.vocabularies.map(&:id)
+        rescue StandardError
           []
         end
-      rescue StandardError
-        []
       end
     end
   end
