@@ -18,6 +18,7 @@ module LingoBeats
       private
 
       # step 1. parse category and query from request URL
+      # :reek:FeatureEnvy
       def validate_list(input)
         return Success(popular: true) if input == :popular
 

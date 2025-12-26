@@ -19,6 +19,13 @@ module LingoBeats
           session['starred_vocab_ids'] = starred_history.vocab_ids
           starred_history
         end
+
+        def update(session)
+          history = load_from(session)
+          updated = yield(history)
+          save_to(session, updated)
+          updated
+        end
       end
     end
   end

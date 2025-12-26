@@ -12,13 +12,10 @@ module LingoBeats
       FAILURE_MESSAGE = '移除失敗'
 
       def call(session, vocab_id)
-        history = Repository::StarredHistories.load_from(session)
-        updated = history.remove(vocab_id)
-
-        Repository::StarredHistories.save_to(session, updated)
+        Repository::StarredHistories.update(session) { |history| history.remove(vocab_id) }
         Success(SUCCESS_MESSAGE)
       rescue StandardError => error
-        App.logger.error(error.full_message)
+        App.logger.error("[RemoveStarVocabulary] #{error.full_message}")
         Failure(FAILURE_MESSAGE)
       end
     end
