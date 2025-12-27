@@ -8,8 +8,8 @@ module LingoBeats
     class AddStarVocabulary
       include Dry::Monads::Result::Mixin
 
-      SUCCESS_MESSAGE = '已收藏'
-      FAILURE_MESSAGE = '收藏失敗'
+      SUCCESS_MESSAGE = 'Saved!'
+      FAILURE_MESSAGE = 'Failed to save'
 
       def call(session, vocab_id)
         Repository::StarredHistories.update(session) { |history| history.add(vocab_id) }
