@@ -4,7 +4,7 @@ An application that transforms *songs* into AI-generated *materials* for an enga
 
 ## **Overview**
 
-LingoBeats will connect to **Spotify** to retrieve songs and **Genius** to fetch lyrics, then analyzes the text using **Zipf frequency** and **CEFR levels** to match content with each learner’s proficiency. 
+LingoBeats will connect to **Spotify** to retrieve songs and **Genius** to fetch lyrics, then analyzes the text using **CEFR levels** to match content with each learner’s proficiency. 
 
 Finally, **Gemini AI** generates personalized learning contents and exercises based on the linguistic insights extracted from the previous stages.
 
@@ -15,7 +15,7 @@ By combining music, AI, and intelligent content generation, LingoBeats hopes to 
 ### Short-term usability goals
 
 1. Integrate Spotify and Genius APIs to retrieve and preprocess song and lyric data
-2. Analyze word with Zipf, CEFR levels and Wordnik API
+2. Analyze word with CEFR levels
 3. Get personalized learning materials using Gemini AI
 
 ### Long-term goals
@@ -28,7 +28,7 @@ By combining music, AI, and intelligent content generation, LingoBeats hopes to 
 ### Entity-Relationship Diagram
 
 <p>
-  <img src="app/presentation/public/er-diagram.svg" width="600" alt="ERD Preview">
+  <img src="app/presentation/public/er-diagram.svg" width="1000" alt="ERD Preview">
 </p>
 
 ## **Setup**
@@ -39,15 +39,8 @@ By combining music, AI, and intelligent content generation, LingoBeats hopes to 
 4. Run `bundle install`
 5. Run `pip install -r requirements.txt` to install cefrpy model
 6. Run `bundle exec rake db:migrate` to create dev database
-7. Run `RACK_ENV=test bundle exec rake db:migrate` to create test database
 
-## **Running Tests**
-
-### To run tests：
-
-<pre><code>rake spec</pre></code>
-
-### To test code quality：
+## **Testing code quality**
 
 <pre><code>rake quality:all</pre></code>
 
