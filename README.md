@@ -26,19 +26,15 @@ By combining music, AI, and intelligent content generation, LingoBeats hopes to 
 ## **System Design**
 
 ### Entity-Relationship Diagram
-
 <p>
-  <img src="app/presentation/public/er-diagram.svg" width="1000" alt="ERD Preview">
+  <img src="app/presentation/public/er-diagram.svg" width="1200" alt="ERD Preview">
 </p>
 
 ## **Setup**
 
-1. Sign up for or log in to your **Spotify for Developers** account, create a new project, and obtain your `client_id` and `client_secret`
-2. Copy `config/secrets_example.yml` to `config/secrets.yml` and update token
-3. Ensure correct version of Ruby install (see `.ruby-version` for `rbenv`)
-4. Run `bundle install`
-5. Run `pip install -r requirements.txt` to install cefrpy model
-6. Run `bundle exec rake db:migrate` to create dev database
+1. Copy `config/secrets_example.yml` to `config/secrets.yml` and update api host
+2. Ensure correct version of Ruby install (see `.ruby-version` for `rbenv`)
+3. Run `bundle install`
 
 ## **Testing code quality**
 
