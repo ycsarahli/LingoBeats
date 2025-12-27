@@ -8,19 +8,11 @@ module Views
     CANDIDATE_KEYS = %i[channel_id channel request_id song_id job_id].freeze
 
     def initialize(config, response, fallback_channel_id: nil)
-      @config = config
-      @response = response
-      @fallback_channel_id = fallback_channel_id
+      @state = ProcessingState.build(config, response, fallback_channel_id)
     end
 
     def in_progress?
-      return false if @response.nil?
-
-      if @response.respond_to?(:processing?)
-        @response.processing?
-      else
-        response_status.to_s == 'processing'
-      end
+      @state.in_progress?
     end
 
     def ws_channel_id
@@ -28,84 +20,162 @@ module Views
     end
 
     def ws_channel_ids
-      return [] unless in_progress?
-
-      @ws_channel_ids ||= begin
-        ids = []
-        ids.concat(extract_ids_from(@response))
-
-        message = response_message
-        ids.concat(extract_ids_from(message)) if message.is_a?(Hash)
-
-        ids << @fallback_channel_id
-        normalize_ids(ids)
-      end
+      @state.channel_ids
     end
 
     def ws_javascript
-      return unless in_progress?
-
-      "#{@config.API_HOST}/faye/faye.js"
+      @state.javascript
     end
 
     def ws_route
-      "#{@config.API_HOST}/faye" if in_progress?
+      @state.route
     end
 
-    private
+    # Processing state management
+    class ProcessingState
+      def self.build(config, response, fallback_channel_id)
+        adapter = ResponseAdapter.new(response)
+        return States::Null.new unless adapter.processing?
 
-    def extract_ids_from(source)
-      return [] if source.nil?
-
-      CANDIDATE_KEYS.filter_map do |key|
-        fetch_value(source, key)
-      end
-    end
-
-    def fetch_value(source, key)
-      if source.respond_to?(key)
-        value = source.public_send(key)
-        str = value.to_s.strip
-        return str unless str.empty?
+        States::Active.new(config, adapter, fallback_channel_id)
       end
 
-      if source.is_a?(Hash)
-        value = source[key] || source[key.to_s]
-        str = value.to_s.strip
-        return str unless str.empty?
-      end
-
-      nil
-    end
-
-    def normalize_ids(ids)
-      ids.map { |id| id.to_s.strip }
-         .reject(&:empty?)
-         .uniq
-    end
-
-    def response_status
-      if @response.respond_to?(:status)
-        @response.status
-      elsif @response.is_a?(Hash)
-        @response[:status] || @response['status']
-      else
-        nil
-      end
-    end
-
-    def response_message
-      raw =
-        if @response.respond_to?(:message)
-          @response.message
-        elsif @response.is_a?(Hash)
-          @response[:message] || @response['message']
+      module States
+        # Null object for non-processing state
+        class Null
+          def in_progress? = false
+          def channel_ids = []
+          def javascript = nil
+          def route = nil
         end
 
-      return raw if raw.is_a?(Hash)
-      return raw.to_h if raw.respond_to?(:to_h)
+        # Active processing state
+        class Active
+          def initialize(config, adapter, fallback_channel_id)
+            @config = config
+            @adapter = adapter
+            @fallback_channel_id = fallback_channel_id
+          end
 
-      {}
+          def in_progress? = true
+
+          def channel_ids
+            @channel_ids ||= IdCollection.normalize(
+              @adapter.ids_from(CANDIDATE_KEYS) +
+              @adapter.message_ids(CANDIDATE_KEYS) +
+              Array(@fallback_channel_id)
+            )
+          end
+
+          def javascript
+            "#{@config.API_HOST}/faye/faye.js"
+          end
+
+          def route
+            "#{@config.API_HOST}/faye"
+          end
+        end
+      end
+    end
+
+    # Utility to normalize ID collections
+    class IdCollection
+      def self.normalize(ids)
+        Array(ids).map { |id| id.to_s.strip }
+                  .reject(&:empty?)
+                  .uniq
+      end
+    end
+
+    # Adapter to handle various response payload formats
+    class ResponseAdapter
+      def initialize(payload)
+        @payload = payload
+        @attributes = AttributeSet.new(@payload)
+        @message_attributes = AttributeSet.new(@attributes.value(:message))
+        @indicator = ProcessingIndicator.build(@payload, @attributes)
+      end
+
+      def processing?
+        @indicator.processing?
+      end
+
+      def ids_from(keys)
+        @attributes.ids_for(keys)
+      end
+
+      def message_ids(keys)
+        @message_attributes.ids_for(keys)
+      end
+    end
+
+    # Attribute set extractor
+    class AttributeSet
+      def initialize(raw)
+        @data = Normalizer.normalize(raw)
+      end
+
+      def ids_for(keys)
+        keys.filter_map { |key| Normalizer.normalized(value(key)) }
+      end
+
+      def status
+        Normalizer.normalized(value(:status))
+      end
+
+      def value(key)
+        @data[key] || @data[key.to_s]
+      end
+
+      # Normalization utilities
+      module Normalizer
+        module_function
+
+        def normalize(hash_like)
+          return {} unless hash_like
+          return hash_like if hash_like.is_a?(Hash)
+
+          hash_like.to_h
+        rescue StandardError
+          {}
+        end
+
+        def normalized(value)
+          str = value.to_s.strip
+          str unless str.empty?
+        end
+      end
+    end
+
+    # Indicator to determine processing status
+    class ProcessingIndicator
+      def self.build(payload, attributes)
+        PayloadIndicator.new(payload)
+      rescue NameError
+        StatusIndicator.new(attributes)
+      end
+
+      # Payload-based indicator
+      class PayloadIndicator
+        def initialize(payload)
+          @processing_method = payload.method(:processing?)
+        end
+
+        def processing?
+          @processing_method.call
+        end
+      end
+
+      # Status attribute-based indicator
+      class StatusIndicator
+        def initialize(attributes)
+          @attributes = attributes
+        end
+
+        def processing?
+          AttributeSet::Normalizer.normalized(@attributes.value(:status)) == 'processing'
+        end
+      end
     end
   end
 end

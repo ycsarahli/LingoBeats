@@ -189,7 +189,7 @@ module LingoBeats
                           locals: { song:, lyrics:, materials:, bad_message: nil, starred_vocab_ids: }
             end
 
-            bad_message = ensure_result.failure || add_failure || '目前無法取得教材內容'
+            bad_message = ensure_result.failure || add_failure || 'Failed to retrieve material content'
 
             song = nil
             lyrics = nil
@@ -234,7 +234,7 @@ module LingoBeats
             notification = Views::Notification.new(message: result.value!, status: :success)
           else
             response.status = 500
-            failure_message = result.failure || '收藏失敗'
+            failure_message = result.failure || 'Failed to save'
             notification = Views::Notification.new(message: failure_message, status: :error)
           end
 
@@ -251,7 +251,7 @@ module LingoBeats
             notification = Views::Notification.new(message: result.value!, status: :success)
           else
             response.status = 500
-            failure_message = result.failure || '移除失敗'
+            failure_message = result.failure || 'Failed to remove'
             notification = Views::Notification.new(message: failure_message, status: :error)
           end
 
