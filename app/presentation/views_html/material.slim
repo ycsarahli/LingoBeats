@@ -60,8 +60,6 @@
             wsRoute: wsRoute
           });
 
-          if (!candidateIds.length) return;
-
           var percentEl = card.querySelector(".progress-percent");
           var circleEl  = card.querySelector(".wave-circle");
           var hintEl    = document.getElementById("progress-hint");
@@ -85,6 +83,11 @@
               card.classList.add("wave-stage--active");
             }
           }
+
+          // Ensure the card is visible with a 0% bar before any websocket updates arrive
+          setBar(0);
+
+          if (!candidateIds.length) return;
 
           function clampPercent(x) {
             var n = parseInt(x, 10);
