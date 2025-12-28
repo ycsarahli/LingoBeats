@@ -98,9 +98,9 @@ ruby:
           p.text-muted.mb-0 Click the star during lessons to add words to your collection.
 
         .history-vocab-interactive class=(saved_vocabularies.any? ? nil : 'd-none')
-          .history-vocab-inner
+          .history-vocab-inner.position-relative
             .history-vocab-browser
-              .history-vocab-layout
+              .history-vocab-layout.position-relative.d-flex.flex-column.flex-grow-1
                 .vocab-collection-list
                   - saved_vocabularies.each_with_index do |vocab, idx|
                     - vocab_obj = vocab.is_a?(Views::Vocab) ? vocab : Views::Vocab.new(vocab.is_a?(Hash) ? OpenStruct.new(vocab) : vocab)
@@ -169,8 +169,8 @@ ruby:
                             - card_locals[:starred] = starred_flag
                             - card_locals[:dataset_key] = dataset_key
                             - card_locals[:scroll_class] = 'history-detail-scroll'
+                            - card_locals[:word_class] = 'text-dark'
                             == render('partials/_vocab_card_body', locals: card_locals)
-
             .history-vocab-detail-panel
               button.history-detail-back.btn.btn-link.p-0.mb-3 type="button"
                 i.fas.fa-chevron-left.me-1 aria-hidden="true"
@@ -180,8 +180,11 @@ ruby:
                   p.text-muted.mb-0 Select a word on the left to view its details.
                 - else
                   p.text-muted.mb-0 No vocabulary has been saved yet.
+            .history-filter-placeholder.history-empty-state.d-none.position-absolute.top-50.start-50.translate-middle.text-center.text-muted.d-flex.flex-column.align-items-center.pe-none.w-100
+              i.fas.fa-box-open.fa-2x.mb-3 aria-hidden="true"
+              p.mb-0 No words are available in this category.
 
-            .history-flashcard-panel.d-none
+            .history-flashcard-panel.d-none.position-relative
               .d-flex.align-items-center.justify-content-end.mb-3
                 span.fw-semibold.text-uppercase.small#historyFlashcardCounter 0 / 0
 
@@ -250,7 +253,8 @@ ruby:
                               vocab_id: vocab_id,
                               starred: starred_flag,
                               dataset_key: dataset_key,
-                              scroll_class: 'flashcard-detail-scroll'
+                              scroll_class: 'flashcard-detail-scroll',
+                              word_class: 'text-dark'
                             }
                           .flashcard-back-body
                             == render('partials/_vocab_card_body', locals: back_locals)

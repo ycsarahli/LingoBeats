@@ -1638,17 +1638,31 @@ body.modal-open {
   color: #ffc107;
 }
 
-.history-vocab-empty,
-.history-empty-state {
+.history-vocab-empty {
   background: #fff;
   border-radius: 24px;
   padding: 48px 32px;
   box-shadow: 0 18px 45px rgba(15, 36, 64, 0.08);
 }
 
-.history-vocab-empty i,
-.history-empty-state i {
+.history-vocab-empty i {
   color: #cbd5f5;
+}
+
+.history-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 360px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 16px;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* =========================================================
@@ -2154,27 +2168,6 @@ body.tutorial-page {
 .head-zh {
   font-size: 1.05rem;
   font-weight: 500;
-}
-
-/* 把單字卡右上角的等級顏色改成主視覺綠 */
-.material-card .badge.bg-success {
-  background-color: var(--lingobeats-green) !important;
-  border-color: var(--lingobeats-green) !important;
-  color: #fff !important;
-}
-
-/* normal：黃色 */
-.material-card .badge.bg-warning {
-  background-color: #ffc107 !important;
-  border-color: #ffc107 !important;
-  color: #fff !important; /* 深色字，比較好讀 */
-}
-
-/* hard：紅色 */
-.material-card .badge.bg-danger {
-  background-color: #dc3545 !important;
-  border-color: #dc3545 !important;
-  color: #fff !important;
 }
 
 /* 單字卡 header：左右兩邊 */

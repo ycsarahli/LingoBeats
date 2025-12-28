@@ -1057,6 +1057,7 @@
       const flashcardNavPrev = historyPage.querySelector('[data-flashcard-nav="prev"]');
       const flashcardNavNext = historyPage.querySelector('[data-flashcard-nav="next"]');
       const flashcardCounter = historyPage.querySelector('#historyFlashcardCounter');
+      const flashcardEmptyState = historyPage.querySelector('.history-flashcard-empty');
       const difficultyTabs = historyPage.querySelectorAll('.difficulty-tab');
       const vocabInner = historyPage.querySelector('.history-vocab-inner');
       const detailPanel = historyPage.querySelector('.history-vocab-detail-panel');
@@ -1064,6 +1065,10 @@
       const detailBackButton = detailPanel?.querySelector('.history-detail-back');
       const mobileDetailQuery = window.matchMedia('(max-width: 991.98px)');
       const getVocabItems = () => historyPage.querySelectorAll('.history-vocab-item');
+      const filterEmptyPlaceholder = historyPage.querySelector('.history-filter-placeholder');
+      const flashcardViewBtn = historyPage.querySelector('.vocab-view-btn[data-view="flashcards"]');
+      const isFlashcardViewActive = () => flashcardViewBtn?.classList.contains('active');
+      const hasVisibleVocabItems = () => !!historyPage.querySelector('.history-vocab-item:not(.d-none)');
       let flashcardIndex = 0;
       let flashcardList = [];
       const supportsPointerEvents = 'PointerEvent' in window;
@@ -1092,10 +1097,11 @@
           } else {
             vocabLayout?.classList.remove('d-none');
             vocabBrowser?.classList.remove('d-none');
-            detailPanel?.classList.remove('d-none');
             flashcardPanel?.classList.add('d-none');
             window.removeEventListener('resize', handleFlashcardResize);
-            if (!mobileDetailQuery.matches && activeVocabItem) {
+            const shouldShowDetailPanel = hasVisibleVocabItems();
+            detailPanel?.classList.toggle('d-none', !shouldShowDetailPanel);
+            if (!mobileDetailQuery.matches && activeVocabItem && shouldShowDetailPanel) {
               setActiveVocabItem(activeVocabItem);
             }
           }
@@ -1185,10 +1191,21 @@
           return matchingItem && !matchingItem.classList.contains('d-none');
         });
 
+        const hasCards = flashcardList.length > 0;
+        flashcardStage?.classList.toggle('d-none', !hasCards);
+        flashcardEmptyState?.classList.toggle('d-none', hasCards);
+
         if (!flashcardList.length) {
           flashcardIndex = 0;
           updateFlashcardCounter();
           updateFlashcardNavButtons();
+          const allCards = historyPage.querySelectorAll('.history-flashcard');
+          allCards.forEach((card) => {
+            card.classList.add('d-none');
+            card.classList.remove('active', 'is-flipped', 'dragging');
+            card.style.transform = '';
+            card.style.opacity = '';
+          });
           return;
         }
 
@@ -1946,18 +1963,26 @@
         });
         bindVocabItems();
         const visibleItems = items.filter((item) => !item.classList.contains('d-none'));
+        const hasVisibleItems = visibleItems.length > 0;
+        filterEmptyPlaceholder?.classList.toggle('d-none', hasVisibleItems);
+
         if (!visibleItems.length) {
           activeVocabItem = null;
           vocabInner?.classList.remove('detail-open');
           showDetailPlaceholder('', { empty: true });
-        } else if (!mobileDetailQuery.matches) {
-          const nextActive = visibleItems.includes(activeVocabItem) ? activeVocabItem : visibleItems[0];
-          setActiveVocabItem(nextActive);
-        } else if (activeVocabItem && !visibleItems.includes(activeVocabItem)) {
-          activeVocabItem = null;
-          items.forEach((item) => item.classList.remove('active'));
-          vocabInner?.classList.remove('detail-open');
-          showDetailPlaceholder('');
+        } else {
+          if (!mobileDetailQuery.matches) {
+            const nextActive = visibleItems.includes(activeVocabItem) ? activeVocabItem : visibleItems[0];
+            setActiveVocabItem(nextActive);
+          } else if (activeVocabItem && !visibleItems.includes(activeVocabItem)) {
+            activeVocabItem = null;
+            items.forEach((item) => item.classList.remove('active'));
+            vocabInner?.classList.remove('detail-open');
+            showDetailPlaceholder('');
+          }
+        }
+        if (!isFlashcardViewActive()) {
+          detailPanel?.classList.toggle('d-none', !hasVisibleItems);
         }
         refreshFlashcards();
         bindHistoryStars();
