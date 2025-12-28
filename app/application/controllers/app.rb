@@ -69,26 +69,11 @@ module LingoBeats
       routing.get do
         @current_page = :history
 
-        saved_vocabularies = []
-        history_error = nil
-
-        begin
-          result = Service::ListStarVocabularies.new.call(session)
-          if result.success?
-            payload = result.value!
-            saved_vocabularies =
-              if payload.respond_to?(:vocabularies)
-                Array(payload.vocabularies)
-              else
-                Array(payload)
-              end
-          else
-            history_error = result.failure || '目前無法取得收藏單字'
+        result = Service::ListStarVocabularies.new.call(session)
+        saved_vocabularies, history_error =
+          RouteHelpers::ResultParser.parse_multi(result, :vocabularies) do |vocabularies, error|
+            [Views::MaterialsList.new(vocabularies), error]
           end
-        rescue StandardError => e
-          App.logger.error(e.full_message)
-          history_error = '目前無法取得收藏單字'
-        end
 
         view 'history', locals: { saved_vocabularies:, history_error: }
       end
@@ -156,6 +141,7 @@ module LingoBeats
           routing.get do
             add_result = Service::AddMaterial.new.call(song_id)
             add_failure = nil
+            material_view_builder = RouteHelpers::MaterialViewBuilder
 
             if add_result.success?
               processing_state = Views::GenerationProcessing.new(
@@ -172,37 +158,13 @@ module LingoBeats
             ensure_result = Service::EnsureMaterial.new.call(song_id: song_id, session: session)
 
             if ensure_result.success?
-              payload = ensure_result.value!
-
-              song_entity = payload.song
-              song = song_entity ? Views::Song.new(song_entity) : nil
-
-              lyric_entity = payload.lyrics
-              lyrics = lyric_entity ? Views::Lyric.new(lyric_entity) : nil
-
-              materials_list = payload.materials || []
-              materials = Views::MaterialsList.new(materials_list)
-
-              starred_vocab_ids = payload.starred_vocab_ids || []
-
-              return view 'material',
-                          locals: { song:, lyrics:, materials:, bad_message: nil, starred_vocab_ids: }
+              locals = material_view_builder.success(ensure_result.value!)
+              return view 'material', locals: locals
             end
 
             bad_message = ensure_result.failure || add_failure || 'Failed to retrieve material content'
 
-            song = nil
-            lyrics = nil
-            materials = Views::MaterialsList.new([])
-            starred_vocab_ids = []
-
-            view 'material', locals: {
-              song: song,
-              lyrics: lyrics,
-              materials: materials,
-              bad_message: bad_message,
-              starred_vocab_ids: starred_vocab_ids
-            }
+            view 'material', locals: material_view_builder.failure(bad_message)
           end
         end
       end
@@ -229,33 +191,30 @@ module LingoBeats
         routing.post do
           result = Service::AddStarVocabulary.new.call(session, vocab_id)
 
-          if result.success?
-            response.status = 201
-            notification = Views::Notification.new(message: result.value!, status: :success)
-          else
-            response.status = 500
-            failure_message = result.failure || 'Failed to save'
-            notification = Views::Notification.new(message: failure_message, status: :error)
-          end
+          notification_response = RouteHelpers::NotificationHelper.build(
+            success_status: 201,
+            failure_status: 500,
+            error_fallback: 'Failed to save'
+          ).call(result)
 
-          puts "[DEBUG] session after adding star: #{session.inspect}"
-          view '/partials/_notification', locals: { notification: }, layout: false
+          response.status = notification_response.status
+
+          view '/partials/_notification', locals: { notification: notification_response.notification }, layout: false
         end
 
         # DELETE /vocabulary/star/:id
         routing.delete do
           result = Service::RemoveStarVocabulary.new.call(session, vocab_id)
 
-          if result.success?
-            response.status = 201
-            notification = Views::Notification.new(message: result.value!, status: :success)
-          else
-            response.status = 500
-            failure_message = result.failure || 'Failed to remove'
-            notification = Views::Notification.new(message: failure_message, status: :error)
-          end
+          notification_response = RouteHelpers::NotificationHelper.build(
+            success_status: 201,
+            failure_status: 500,
+            error_fallback: 'Failed to remove'
+          ).call(result)
 
-          view '/partials/_notification', locals: { notification: }, layout: false
+          response.status = notification_response.status
+
+          view '/partials/_notification', locals: { notification: notification_response.notification }, layout: false
         end
       end
     end

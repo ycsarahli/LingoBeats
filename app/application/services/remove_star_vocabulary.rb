@@ -8,7 +8,7 @@ module LingoBeats
     class RemoveStarVocabulary
       include Dry::Monads::Result::Mixin
 
-      SUCCESS_MESSAGE = '已移除收藏'
+      SUCCESS_MESSAGE = 'Removed'
       FAILURE_MESSAGE = '移除失敗'
 
       def call(session, vocab_id)

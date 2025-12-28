@@ -58,5 +58,89 @@ module LingoBeats
         @store ||= Concurrent::Map.new
       end
     end
+
+    # Encapsulate notification building for controller responses
+    module NotificationHelper
+      Response = Struct.new(:status, :notification, keyword_init: true)
+
+      def self.build(success_status:, failure_status:, error_fallback:)
+        Configured.new(
+          success_status:,
+          failure_status:,
+          error_fallback:
+        )
+      end
+
+      # Callable object with baked-in status configuration
+      class Configured
+        def initialize(success_status:, failure_status:, error_fallback:)
+          @success_status = success_status
+          @failure_status = failure_status
+          @error_fallback = error_fallback
+        end
+
+        def call(result)
+          result.success? ? success_response(result) : failure_response(result)
+        end
+
+        private
+
+        attr_reader :success_status, :failure_status, :error_fallback
+
+        def success_response(result)
+          Response.new(
+            status: success_status,
+            notification: Views::Notification.new(
+              message: result.value!,
+              status: :success
+            )
+          )
+        end
+
+        def failure_response(result)
+          failure_message = result.failure || error_fallback
+          Response.new(
+            status: failure_status,
+            notification: Views::Notification.new(
+              message: failure_message,
+              status: :error
+            )
+          )
+        end
+      end
+    end
+
+    # Builds locals for material view rendering
+    module MaterialViewBuilder
+      module_function
+
+      def success(payload)
+        {
+          song: wrap_song(payload.song),
+          lyrics: wrap_lyrics(payload.lyrics),
+          materials: Views::MaterialsList.new(payload.materials || []),
+          bad_message: nil,
+          starred_vocab_ids: payload.starred_vocab_ids || []
+        }
+      end
+
+      def failure(bad_message)
+        {
+          song: nil,
+          lyrics: nil,
+          materials: Views::MaterialsList.new([]),
+          bad_message:,
+          starred_vocab_ids: []
+        }
+      end
+
+      def wrap_song(entity)
+        entity ? Views::Song.new(entity) : nil
+      end
+
+      def wrap_lyrics(entity)
+        entity ? Views::Lyric.new(entity) : nil
+      end
+    end
   end
 end

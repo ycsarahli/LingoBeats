@@ -5,7 +5,7 @@ require_relative 'vocab'
 module Views
   # View for a a list of material entities
   class MaterialsList
-    attr_reader :song
+    include Enumerable
 
     def initialize(materials)
       @materials = Array(materials).map do |vocab|
@@ -14,14 +14,22 @@ module Views
       end
     end
 
-    def each(&show)
-      @materials.each do |material|
-        show.call material
-      end
+    def each(&)
+      return enum_for(:each) unless block_given?
+
+      @materials.each(&)
     end
 
     def any?
       @materials.any?
+    end
+
+    def length
+      @materials.length
+    end
+
+    def to_a
+      @materials.dup
     end
   end
 end

@@ -41,15 +41,8 @@ module Views
 
     def difficulty_label
       level_code = @vocab.level.to_s.strip.upcase
-      key =
-        case level_code[0]
-        when 'A' then 'easy'
-        when 'B' then 'medium'
-        when 'C' then 'hard'
-        else
-          nil
-        end
-      key || level_code
+      lookup = { 'A' => 'easy', 'B' => 'medium', 'C' => 'hard' }
+      lookup.fetch(level_code[0], level_code)
     end
 
     def difficulty_class
