@@ -17,7 +17,7 @@
       .word-block
         - word_classes = ['word', 'mb-0']
         - word_classes << word_class if word_class
-        h3.text-main.fw-bold class=word_classes.join(' ') = card_word
+        h3.fw-bold.text-dark class=word_classes.compact.join(' ') = card_word
     .material-header-right
       - if level_text && !level_text.empty?
         span.badge class=badge_class = level_text

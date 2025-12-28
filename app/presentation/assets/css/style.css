@@ -2170,27 +2170,6 @@ body.tutorial-page {
   font-weight: 500;
 }
 
-/* 把單字卡右上角的等級顏色改成主視覺綠 */
-.material-card .badge.bg-success {
-  background-color: var(--lingobeats-green) !important;
-  border-color: var(--lingobeats-green) !important;
-  color: #fff !important;
-}
-
-/* normal：黃色 */
-.material-card .badge.bg-warning {
-  background-color: #ffc107 !important;
-  border-color: #ffc107 !important;
-  color: #fff !important; /* 深色字，比較好讀 */
-}
-
-/* hard：紅色 */
-.material-card .badge.bg-danger {
-  background-color: #dc3545 !important;
-  border-color: #dc3545 !important;
-  color: #fff !important;
-}
-
 /* 單字卡 header：左右兩邊 */
 .material-card .material-header {
   display: flex;

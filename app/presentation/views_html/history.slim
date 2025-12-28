@@ -169,6 +169,7 @@ ruby:
                             - card_locals[:starred] = starred_flag
                             - card_locals[:dataset_key] = dataset_key
                             - card_locals[:scroll_class] = 'history-detail-scroll'
+                            - card_locals[:word_class] = 'text-dark'
                             == render('partials/_vocab_card_body', locals: card_locals)
             .history-vocab-detail-panel
               button.history-detail-back.btn.btn-link.p-0.mb-3 type="button"
@@ -252,7 +253,8 @@ ruby:
                               vocab_id: vocab_id,
                               starred: starred_flag,
                               dataset_key: dataset_key,
-                              scroll_class: 'flashcard-detail-scroll'
+                              scroll_class: 'flashcard-detail-scroll',
+                              word_class: 'text-dark'
                             }
                           .flashcard-back-body
                             == render('partials/_vocab_card_body', locals: back_locals)
