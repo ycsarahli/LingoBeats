@@ -69,26 +69,11 @@ module LingoBeats
       routing.get do
         @current_page = :history
 
-        saved_vocabularies = []
-        history_error = nil
-
-        begin
-          result = Service::ListStarVocabularies.new.call(session)
-          if result.success?
-            payload = result.value!
-            saved_vocabularies =
-              if payload.respond_to?(:vocabularies)
-                Array(payload.vocabularies)
-              else
-                Array(payload)
-              end
-          else
-            history_error = result.failure || '目前無法取得收藏單字'
+        result = Service::ListStarVocabularies.new.call(session)
+        saved_vocabularies, history_error =
+          RouteHelpers::ResultParser.parse_multi(result, :vocabularies) do |vocabularies, error|
+            [Views::MaterialsList.new(vocabularies), error]
           end
-        rescue StandardError => e
-          App.logger.error(e.full_message)
-          history_error = '目前無法取得收藏單字'
-        end
 
         view 'history', locals: { saved_vocabularies:, history_error: }
       end
