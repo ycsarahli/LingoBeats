@@ -299,7 +299,7 @@
               - key  = word.to_s.downcase.gsub(/[^a-z']/,'')
               - normalized_vocab[key] = true unless key.empty?
 
-          pre.lyrics-text
+          pre.lyrics-text.ps-1
             - lyrics.text.to_s.split(/\n/).each do |line|
               - tokens = line.split(/(\s+)/)
               - tokens.each do |tk|

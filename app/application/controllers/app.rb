@@ -141,6 +141,7 @@ module LingoBeats
           routing.get do
             add_result = Service::AddMaterial.new.call(song_id)
             add_failure = nil
+            material_view_builder = RouteHelpers::MaterialViewBuilder
 
             if add_result.success?
               processing_state = Views::GenerationProcessing.new(
@@ -157,37 +158,13 @@ module LingoBeats
             ensure_result = Service::EnsureMaterial.new.call(song_id: song_id, session: session)
 
             if ensure_result.success?
-              payload = ensure_result.value!
-
-              song_entity = payload.song
-              song = song_entity ? Views::Song.new(song_entity) : nil
-
-              lyric_entity = payload.lyrics
-              lyrics = lyric_entity ? Views::Lyric.new(lyric_entity) : nil
-
-              materials_list = payload.materials || []
-              materials = Views::MaterialsList.new(materials_list)
-
-              starred_vocab_ids = payload.starred_vocab_ids || []
-
-              return view 'material',
-                          locals: { song:, lyrics:, materials:, bad_message: nil, starred_vocab_ids: }
+              locals = material_view_builder.success(ensure_result.value!)
+              return view 'material', locals: locals
             end
 
             bad_message = ensure_result.failure || add_failure || 'Failed to retrieve material content'
 
-            song = nil
-            lyrics = nil
-            materials = Views::MaterialsList.new([])
-            starred_vocab_ids = []
-
-            view 'material', locals: {
-              song: song,
-              lyrics: lyrics,
-              materials: materials,
-              bad_message: bad_message,
-              starred_vocab_ids: starred_vocab_ids
-            }
+            view 'material', locals: material_view_builder.failure(bad_message)
           end
         end
       end

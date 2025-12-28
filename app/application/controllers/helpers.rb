@@ -109,5 +109,38 @@ module LingoBeats
         end
       end
     end
+
+    # Builds locals for material view rendering
+    module MaterialViewBuilder
+      module_function
+
+      def success(payload)
+        {
+          song: wrap_song(payload.song),
+          lyrics: wrap_lyrics(payload.lyrics),
+          materials: Views::MaterialsList.new(payload.materials || []),
+          bad_message: nil,
+          starred_vocab_ids: payload.starred_vocab_ids || []
+        }
+      end
+
+      def failure(bad_message)
+        {
+          song: nil,
+          lyrics: nil,
+          materials: Views::MaterialsList.new([]),
+          bad_message:,
+          starred_vocab_ids: []
+        }
+      end
+
+      def wrap_song(entity)
+        entity ? Views::Song.new(entity) : nil
+      end
+
+      def wrap_lyrics(entity)
+        entity ? Views::Lyric.new(entity) : nil
+      end
+    end
   end
 end
