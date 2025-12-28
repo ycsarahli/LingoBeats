@@ -229,33 +229,30 @@ module LingoBeats
         routing.post do
           result = Service::AddStarVocabulary.new.call(session, vocab_id)
 
-          if result.success?
-            response.status = 201
-            notification = Views::Notification.new(message: result.value!, status: :success)
-          else
-            response.status = 500
-            failure_message = result.failure || 'Failed to save'
-            notification = Views::Notification.new(message: failure_message, status: :error)
-          end
+          notification_response = RouteHelpers::NotificationHelper.build(
+            success_status: 201,
+            failure_status: 500,
+            error_fallback: 'Failed to save'
+          ).call(result)
 
-          puts "[DEBUG] session after adding star: #{session.inspect}"
-          view '/partials/_notification', locals: { notification: }, layout: false
+          response.status = notification_response.status
+
+          view '/partials/_notification', locals: { notification: notification_response.notification }, layout: false
         end
 
         # DELETE /vocabulary/star/:id
         routing.delete do
           result = Service::RemoveStarVocabulary.new.call(session, vocab_id)
 
-          if result.success?
-            response.status = 201
-            notification = Views::Notification.new(message: result.value!, status: :success)
-          else
-            response.status = 500
-            failure_message = result.failure || 'Failed to remove'
-            notification = Views::Notification.new(message: failure_message, status: :error)
-          end
+          notification_response = RouteHelpers::NotificationHelper.build(
+            success_status: 201,
+            failure_status: 500,
+            error_fallback: 'Failed to remove'
+          ).call(result)
 
-          view '/partials/_notification', locals: { notification: }, layout: false
+          response.status = notification_response.status
+
+          view '/partials/_notification', locals: { notification: notification_response.notification }, layout: false
         end
       end
     end
