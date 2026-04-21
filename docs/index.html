@@ -35,9 +35,9 @@
 
     .topbar {
       flex: 0 0 auto;
-      max-width: 1180px;
+      width: 100%;
       margin: 0 auto;
-      padding: 22px 24px 18px;
+      padding: 22px clamp(18px, 4.4vw, 90px) 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -100,9 +100,8 @@
 
     main {
       width: 100%;
-      max-width: 1180px;
       margin: 0 auto;
-      padding: 0 24px 28px;
+      padding: 0 clamp(18px, 4.4vw, 90px) 28px;
       min-height: 0;
       flex: 1;
       display: flex;
