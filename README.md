@@ -1,6 +1,6 @@
 # **LingoBeats**
 
-An application that transforms *songs* into AI-generated *materials* for an engaging language-learning experience.
+An application that transforms *songs* into AI-generated *materials* for an engaging language-learning experience through integrated APIs from [lingobeats-api](https://github.com/CSV-UPSTART3/lingobeats-api).
 
 ## **Overview**
 
@@ -28,6 +28,11 @@ By combining music, AI, and intelligent content generation, LingoBeats hopes to 
 ### Entity-Relationship Diagram
 <p>
   <img src="app/presentation/public/er-diagram.svg" width="1200" alt="ERD Preview">
+</p>
+
+### Architecture
+<p>
+  <img src="app/presentation/public/architecture.png" width="1200" alt="Arch Preview">
 </p>
 
 ## **Setup**
