@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LingoBeats Intro</title>
+  <style>
+    :root {
+      --bg: #f3fbf4;
+      --surface: #ffffff;
+      --surface-soft: #f7fff8;
+      --text: #1f2428;
+      --muted: #6b7280;
+      --line: #d9eadc;
+      --accent: #5fae67;
+      --shadow: 0 18px 45px rgba(32, 72, 43, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(95, 174, 103, 0.16), transparent 34rem),
+        linear-gradient(135deg, var(--bg) 0%, #edf8ef 52%, #f8fbf4 100%);
+    }
+
+    .topbar {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 22px 24px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.55rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 16px;
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.76);
+      font-size: 0.92rem;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(32, 72, 43, 0.08);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(95, 174, 103, 0.48);
+      background: var(--surface);
+      box-shadow: 0 12px 26px rgba(32, 72, 43, 0.13);
+    }
+
+    .btn:focus-visible {
+      outline: 3px solid rgba(95, 174, 103, 0.28);
+      outline-offset: 3px;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px 28px;
+    }
+
+    .document-shell {
+      overflow: hidden;
+      border: 1px solid rgba(217, 234, 220, 0.92);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .document-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .document-dots {
+      display: flex;
+      gap: 7px;
+      flex: 0 0 auto;
+    }
+
+    .document-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ff5f57;
+    }
+
+    .document-dots span:nth-child(2) {
+      background: #ffbd2e;
+    }
+
+    .document-dots span:nth-child(3) {
+      background: #28c840;
+    }
+
+    .document-title {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page-list {
+      display: grid;
+      gap: 22px;
+      padding: 22px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fcf8 100%);
+    }
+
+    .doc-page {
+      width: 100%;
+      height: auto;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 14px 34px rgba(32, 72, 43, 0.1);
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 20px 18px 16px;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .btn {
+        flex: 1 1 150px;
+      }
+
+      main {
+        padding: 0 12px 16px;
+      }
+
+      .document-shell {
+        border-radius: 14px;
+      }
+
+      .document-header {
+        padding: 11px 13px;
+      }
+
+      .page-list {
+        gap: 14px;
+        padding: 12px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>LingoBeats</h1>
+      <p>AI-generated language-learning materials transformed from songs.</p>
+    </div>
+    <nav class="actions" aria-label="Document links">
+      <a class="btn" href="https://github.com/ycsarahli/LingoBeats" target="_blank" rel="noopener noreferrer">
+        GitHub Repo
+      </a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="document-shell" aria-label="LingoBeats document preview">
+      <div class="document-header">
+        <div class="document-dots" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="document-title">Introduction</div>
+      </div>
+      <div class="page-list">
+        <img class="doc-page" src="assets/s1.png" alt="LingoBeats introduction page 1" width="1920" height="1080" loading="eager" fetchpriority="high" />
+        <img class="doc-page" src="assets/s2.png" alt="LingoBeats introduction page 2" width="1920" height="1080" loading="lazy" />
+        <img class="doc-page" src="assets/s3-0.png" alt="LingoBeats introduction page 3" width="1920" height="1080" loading="lazy" />
+        <img class="doc-page" src="assets/s3-1.png" alt="LingoBeats introduction page 4" width="1920" height="1080" loading="lazy" />
+        <img class="doc-page" src="assets/s3-2.png" alt="LingoBeats introduction page 5" width="1920" height="1080" loading="lazy" />
+        <img class="doc-page" src="assets/s3-3.png" alt="LingoBeats introduction page 6" width="1920" height="1080" loading="lazy" />
+        <img class="doc-page" src="assets/s3-4.png" alt="LingoBeats introduction page 7" width="1920" height="1080" loading="lazy" />
+        <img class="doc-page" src="assets/s4.png" alt="LingoBeats introduction page 8" width="1920" height="1080" loading="lazy" />
+      </div>
+    </section>
+  </main>
+</body>
+</html>
